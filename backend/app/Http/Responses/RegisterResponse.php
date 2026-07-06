@@ -9,25 +9,12 @@ class RegisterResponse implements RegisterResponseContract
     public function toResponse($request)
     {
         $user = $request->user();
-        $minutes = 60;
         $expiresAt = now()->addHour();
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
-        return response()
-            ->json([
-                'user' => $user->only('id', 'name', 'email', 'linux_username'),
-                'token' => $token,
-            ], 201)
-            ->cookie(
-                'auth_token',
-                $token,
-                $minutes,
-                '/',
-                env('SESSION_DOMAIN', ''),
-                env('APP_ENV') === 'production',
-                true,
-                false,
-                'Lax'
-            );
+        return response()->json([
+            'user' => $user->only('id', 'name', 'email', 'linux_username'),
+            'token' => $token,
+        ], 201);
     }
 }

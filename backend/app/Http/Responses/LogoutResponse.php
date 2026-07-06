@@ -10,18 +10,6 @@ class LogoutResponse implements LogoutResponseContract
     {
         $request->user()?->currentAccessToken()?->delete();
 
-        return response()
-            ->json(['status' => true, 'message' => 'Logged out'])
-            ->cookie(
-                'auth_token',
-                '',
-                -1,  // expire immediately
-                '/',
-                env('SESSION_DOMAIN', 'localhost'),
-                env('APP_ENV') === 'production',
-                true,
-                false,
-                'Lax'
-            );
+        return response()->json(['status' => true, 'message' => 'Logged out']);
     }
 }

@@ -29,7 +29,6 @@ export async function api<T = unknown>(
 
   const res = await fetch(`${BASE}${endpoint}`, {
     ...options,
-    credentials: "include", // CRITICAL: sends the httpOnly cookie
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
