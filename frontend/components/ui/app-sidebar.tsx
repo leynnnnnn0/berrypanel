@@ -2,17 +2,14 @@
 
 import {
   BookOpen,
-  Calendar,
-  DoorClosed,
-  FolderGit2,
-  GitGraphIcon,
+  Database,
+  Folder,
+  Globe2,
+  KeyRound,
   LayoutGrid,
-  List,
-  ListCheck,
-  User2Icon,
-  Wrench,
+  LifeBuoy,
+  Rocket,
 } from "lucide-react";
-import AppLogo from "./AppLogo";
 import { NavFooter } from "@/components/ui/nav-footer";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -30,22 +27,47 @@ import Link from "next/link";
 
 const mainNavItems: NavItem[] = [
   {
-    title: "Dashboard",
+    title: "Overview",
     href: "/dashboard",
     icon: LayoutGrid,
   },
   {
-    title: "Users",
-    href: "/users",
-    icon: User2Icon,
+    title: "Sites",
+    href: "/dashboard/sites",
+    icon: Globe2,
+  },
+  {
+    title: "Deployments",
+    href: "/dashboard/deployments",
+    icon: Rocket,
+  },
+  {
+    title: "Databases",
+    href: "/dashboard/databases",
+    icon: Database,
+  },
+  {
+    title: "Files",
+    href: "/dashboard/files",
+    icon: Folder,
+  },
+  {
+    title: "SSH Access",
+    href: "/dashboard/ssh-access",
+    icon: KeyRound,
+  },
+  {
+    title: "Support",
+    href: "/dashboard/support",
+    icon: LifeBuoy,
   },
 ];
 
 const footerNavItems: NavItem[] = [
   {
-    title: "Github",
-    href: "https://github.com/leynnnnnn0/nextjs-laravel-auth-boilerplate.git",
-    icon: GitGraphIcon,
+    title: "Hosting Guide",
+    href: "https://laravel.com/docs/deployment",
+    icon: BookOpen,
   },
 ];
 
@@ -57,7 +79,9 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard" prefetch>
-                <span className="text-sm text-center font-bold">Next.js / Laravel Starter Kit</span>
+                <span className="text-center text-sm font-bold">
+                  BerryPanel
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

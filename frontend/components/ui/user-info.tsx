@@ -1,15 +1,18 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { User } from "@/types/user";
+
+export type UserInfoUser = {
+  name: string;
+  email: string;
+  avatar?: string;
+};
 
 export function UserInfo({
   user,
   showEmail = false,
 }: {
-  user: User;
+  user: UserInfoUser;
   showEmail?: boolean;
 }) {
-  const getInitials = "TODO";
-
   return (
     <>
       <Avatar className="h-8 w-8 overflow-hidden rounded-full">

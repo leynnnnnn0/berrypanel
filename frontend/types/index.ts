@@ -1,1 +1,1 @@
-import type { NavItem, BreadcrumbItem } from "./navigation";
+export type { NavItem, BreadcrumbItem } from "./navigation";

@@ -14,8 +14,8 @@ type IsCurrentUrlFn = (
 type WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
   urlToCheck: Href,
   ifTrue: TIfTrue,
-  ifFalse?: TIfFalse,
-) => TIfTrue | TIfFalse;
+  ifFalse?: TIfFalse | null,
+) => TIfTrue | TIfFalse | null;
 
 type UseCurrentUrlReturn = {
   currentUrl: string;
@@ -49,9 +49,9 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
   const whenCurrentUrl: WhenCurrentUrlFn = (
     urlToCheck,
     ifTrue,
-    ifFalse = null as any,
+    ifFalse,
   ) => {
-    return isCurrentUrl(urlToCheck) ? ifTrue : ifFalse;
+    return isCurrentUrl(urlToCheck) ? ifTrue : (ifFalse ?? null);
   };
 
   return {

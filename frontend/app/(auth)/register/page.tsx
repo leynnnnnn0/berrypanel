@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import AppLogo from "@/components/ui/AppLogo";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import Link from 'next/link';
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleRegister(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
@@ -34,58 +34,87 @@ export default function RegisterPage() {
 
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="h-screen w-screen dark:bg-[#F1F1F1] flex items-center justify-center">
-      <div className="h-fit w-110 rounded-lg shadow-lg dark:bg-white space-y-4 p-5 flex justify-center items-center flex-col">
-        <AppLogo />
-        <div className="text-center">
-          <h3 className="text-xl font-bold">Create an account</h3>
-          <h6 className="text-black/40 text-sm">
-            Fill in the details below to get started
-          </h6>
-        </div>
-
-        <form onSubmit={handleRegister} className="w-full space-y-4">
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <Label>Name</Label>
-            <Input name="name" type="text" placeholder="Juan dela Cruz" required />
+    <AuthShell
+      eyebrow="Customer Registration"
+      title="Create Your Hosting Account"
+      subtitle="Request access to host Laravel and Inertia projects on your BerryPanel server."
+      mode="register"
+    >
+      <div className="rounded-[26px] bg-[#f6f6f6] p-5 md:p-7">
+        <form onSubmit={handleRegister} className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#333]">Name</Label>
+            <Input
+              name="name"
+              type="text"
+              placeholder="Juan dela Cruz"
+              required
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+            />
           </div>
 
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <Label>Email</Label>
-            <Input name="email" type="email" placeholder="email@example.com" required />
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#333]">Email</Label>
+            <Input
+              name="email"
+              type="email"
+              placeholder="email@example.com"
+              required
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+            />
           </div>
 
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <Label>Password</Label>
-            <Input name="password" type="password" placeholder="••••••••" required />
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#333]">Password</Label>
+            <Input
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+            />
           </div>
 
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <Label>Confirm Password</Label>
-            <Input name="password_confirmation" type="password" placeholder="••••••••" required />
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#333]">Confirm Password</Label>
+            <Input
+              name="password_confirmation"
+              type="password"
+              placeholder="••••••••"
+              required
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+            />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="h-14 w-full rounded-full bg-black text-[17px] text-white hover:bg-black/85"
+            disabled={loading}
+          >
             {loading ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
-        <p className="text-sm text-black/40">
+        <p className="mt-6 text-center text-[15px] text-[#777]">
           Already have an account?{" "}
-          <Link href="/login" className="text-black font-medium hover:underline">
+          <Link href="/login" className="font-medium text-black">
             Log in
           </Link>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

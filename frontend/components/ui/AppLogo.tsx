@@ -1,7 +1,5 @@
 'use client';
 
-import Logo from '@/public/images/logo.png';
-import Image from 'next/image';
 import Link from 'next/link';
 
 export default function AppLogo() {

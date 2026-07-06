@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import AppLogo from "@/components/ui/AppLogo";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,9 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { useSearchParams } from "next/navigation";
+import { AuthShell } from "@/components/auth/auth-shell";
 
-
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,69 +44,89 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen w-screen dark:bg-[#F1F1F1] flex items-center justify-center">
-      <div className="h-fit w-110 rounded-lg shadow-lg dark:bg-white space-y-4 p-5 flex justify-center items-center flex-col">
-        <AppLogo />
-        <div className="text-center">
-          <h3 className="text-xl font-bold">Log in to your account</h3>
-          <h6 className="text-black/40 text-sm">
-            Enter your email and password below to log in
-          </h6>
-        </div>
-
+    <AuthShell
+      eyebrow="Panel Login"
+      title="Welcome Back To Your Panel"
+      subtitle="Sign in to manage Laravel sites, databases, deployments, and server status."
+      mode="login"
+    >
+      <div className="rounded-[26px] bg-[#f6f6f6] p-5 md:p-7">
         {wasReset && (
-          <p className="text-green-500 text-sm">
+          <p className="mb-4 rounded-2xl bg-[#d8cef2] px-4 py-3 text-sm text-[#252525]">
             Password reset successfully. Please log in.
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <Label>Email</Label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#333]">Email</Label>
             <Input
               required
               name="email"
               type="email"
               placeholder="email@example.com"
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
             />
           </div>
 
-          <div className="space-y-2 flex flex-col items-start w-full">
-            <div className="flex items-center justify-between w-full">
-              <Label>Password</Label>
-              <Link href="/forgot-password" className="underline text-xs">Forgot Password</Link>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-[16px] text-[#333]">Password</Label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-[#555] underline-offset-4 hover:underline"
+              >
+                Forgot Password
+              </Link>
             </div>
             <Input
               required
               name="password"
               type="password"
               placeholder="••••••••"
+              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
 
           <FieldGroup>
-            <Field orientation="horizontal">
-              <Checkbox id="tremember" name="remember" />
-              <FieldLabel htmlFor="remember">Remember Me</FieldLabel>
+            <Field orientation="horizontal" className="gap-3">
+              <Checkbox id="remember" name="remember" />
+              <FieldLabel htmlFor="remember" className="text-[#555]">
+                Remember Me
+              </FieldLabel>
             </Field>
           </FieldGroup>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+          <Button
+            type="submit"
+            className="h-14 w-full rounded-full bg-black text-[17px] text-white hover:bg-black/85"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login to BerryPanel"}
           </Button>
         </form>
-        <p className="text-sm text-black/40">
-          Don't have an account?{" "}
-          <Link
-            href="/register"
-            className="text-black font-medium hover:underline"
-          >
-            Register
+
+        <p className="mt-6 text-center text-[15px] text-[#777]">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="font-medium text-black">
+            Create customer account
           </Link>
         </p>
       </div>
-    </div>
+    </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   );
 }
