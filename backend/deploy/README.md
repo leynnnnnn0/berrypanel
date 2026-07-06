@@ -10,6 +10,7 @@ This is the backend checklist for testing the current BerryPanel MVP on your Pi.
 - Composer install, Laravel app key generation, storage link, npm install, and frontend build for Laravel/Inertia apps.
 - Per-site Nginx virtual host generation, config test, and reload when Nginx provisioning is enabled.
 - BerryPanel-generated site hostnames like `site-name.192.168.254.113.nip.io`.
+- Key-based SSH access for users so they can run Laravel commands inside their own workspace.
 - Per-site `.env` writing.
 - Database record creation.
 - Real MariaDB database/user creation when database provisioning is enabled.
@@ -25,7 +26,7 @@ Install the runtime packages first:
 
 ```bash
 sudo apt update
-sudo apt install -y nginx mariadb-server php8.4-fpm php8.4-cli php8.4-mbstring php8.4-xml php8.4-curl php8.4-sqlite3 php8.4-mysql php8.4-zip php8.4-bcmath unzip git composer nodejs npm
+sudo apt install -y nginx openssh-server mariadb-server php8.4-fpm php8.4-cli php8.4-mbstring php8.4-xml php8.4-curl php8.4-sqlite3 php8.4-mysql php8.4-zip php8.4-bcmath unzip git composer nodejs npm
 ```
 
 If your Pi only has PHP 8.3 available, use the matching `php8.3-*` packages and set hosted sites to PHP 8.3 for now.
@@ -39,6 +40,7 @@ sudo usermod -aG berrypanel $USER
 sudo mkdir -p /srv/berrypanel/users
 sudo chown root:berrypanel /srv/berrypanel/users
 sudo chmod 2775 /srv/berrypanel/users
+sudo systemctl enable --now ssh
 ```
 
 Log out and back in after changing groups if needed.
@@ -76,6 +78,9 @@ BERRYPANEL_NGINX_PROVISIONING_ENABLED=true
 BERRYPANEL_NGINX_SITES_AVAILABLE_PATH=/etc/nginx/sites-available
 BERRYPANEL_NGINX_SITES_ENABLED_PATH=/etc/nginx/sites-enabled
 BERRYPANEL_NGINX_PHP_FPM_SOCKET=/run/php/php8.4-fpm.sock
+BERRYPANEL_SSH_PROVISIONING_ENABLED=true
+BERRYPANEL_SSH_HOST=192.168.254.113
+BERRYPANEL_SSH_PORT=22
 BERRYPANEL_DATABASE_PROVISIONING_ENABLED=true
 BERRYPANEL_MYSQL_ADMIN_USERNAME=berrypanel_admin
 BERRYPANEL_MYSQL_ADMIN_PASSWORD=your-real-admin-password
@@ -128,7 +133,49 @@ Or sync one site by slug:
 php artisan berrypanel:nginx:sync test2
 ```
 
-Then:
+## SSH Access Provisioning
+
+BerryPanel creates one Linux user per account and installs the public key that
+the user pastes on the SSH Access page. This is key-based SSH only. BerryPanel
+does not create or show SSH passwords.
+
+Allow the `berrypanel` group to run the Linux account and key-file commands
+without a password:
+
+```bash
+sudo visudo -f /etc/sudoers.d/berrypanel-ssh
+```
+
+Paste this:
+
+```sudoers
+%berrypanel ALL=(root) NOPASSWD: /usr/sbin/useradd, /usr/sbin/usermod, /usr/bin/mkdir, /usr/bin/cp, /usr/bin/chown, /usr/bin/chmod, /usr/bin/unlink
+```
+
+Restart the backend process after changing groups or sudoers. If you are using
+UFW, allow SSH:
+
+```bash
+sudo ufw allow 22/tcp
+```
+
+The user creates a key on their own computer:
+
+```bash
+ssh-keygen -t ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+
+They paste the public key into BerryPanel. After that they can connect:
+
+```bash
+ssh -p 22 user_1@192.168.254.113
+cd sites/test2
+php artisan migrate --force
+php artisan key:generate --force
+```
+
+Finish the backend app install:
 
 ```bash
 composer install --no-dev --optimize-autoloader

@@ -8,6 +8,7 @@ use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use App\Http\Controllers\HostingDatabaseController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\SshAccessController;
 
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware('throttle:6,1');
@@ -35,6 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/databases', [HostingDatabaseController::class, 'index']);
     Route::post('/databases', [HostingDatabaseController::class, 'store']);
     Route::delete('/databases/{database}', [HostingDatabaseController::class, 'destroy']);
+    Route::get('/ssh-access', [SshAccessController::class, 'show']);
+    Route::put('/ssh-access', [SshAccessController::class, 'update']);
+    Route::delete('/ssh-access', [SshAccessController::class, 'destroy']);
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
