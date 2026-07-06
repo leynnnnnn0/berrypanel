@@ -84,7 +84,7 @@ class SiteController extends Controller
         $localUrl = $this->siteHost($slug);
 
         try {
-            $paths = $provisioner->provision($user, $slug, $validated['repository_url'], $branch);
+            $paths = $provisioner->provision($user, $slug, $validated['repository_url'], $branch, $localUrl);
 
             $nginx->provision($slug, $localUrl, $paths['public_path'], $phpVersion);
         } catch (RuntimeException $exception) {

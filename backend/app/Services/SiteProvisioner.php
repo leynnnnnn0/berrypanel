@@ -10,7 +10,7 @@ use Symfony\Component\Process\Process;
 
 class SiteProvisioner
 {
-    public function provision(User $user, string $siteSlug, string $repositoryUrl, string $repositoryBranch): array
+    public function provision(User $user, string $siteSlug, string $repositoryUrl, string $repositoryBranch, ?string $appUrl = null): array
     {
         $linuxUsername = $user->linux_username;
 
@@ -44,7 +44,7 @@ class SiteProvisioner
         if ((bool) config('berrypanel.git_deploy_enabled')) {
             try {
                 $this->cloneRepository($repositoryUrl, $repositoryBranch, $siteRoot);
-                $deploymentWarnings = $this->prepareLaravelApplication($siteRoot);
+                $deploymentWarnings = $this->prepareLaravelApplication($siteRoot, $appUrl);
                 $environmentVariables = $this->readEnvironmentFile($siteRoot);
             } catch (\Throwable $exception) {
                 if (File::isDirectory($siteRoot)) {
@@ -170,7 +170,7 @@ class SiteProvisioner
         }
     }
 
-    private function prepareLaravelApplication(string $siteRoot): array
+    private function prepareLaravelApplication(string $siteRoot, ?string $appUrl = null): array
     {
         $warnings = [];
 
@@ -183,7 +183,7 @@ class SiteProvisioner
         }
 
         if (File::exists($this->joinPath($siteRoot, '.env'))) {
-            $this->applyStarterRuntimeDefaults($siteRoot);
+            $this->applyStarterRuntimeDefaults($siteRoot, $appUrl);
         }
 
         if (File::exists($this->joinPath($siteRoot, 'composer.json'))) {
@@ -208,7 +208,7 @@ class SiteProvisioner
         }
 
         if (File::exists($this->joinPath($siteRoot, 'package.json'))) {
-            $npmInstallWarning = $this->runCommand(['npm', 'install', '--include=dev', '--no-audit', '--no-fund'], $siteRoot, 'Node dependency install failed', allowFailure: true);
+            $npmInstallWarning = $this->runCommand(['npm', 'install', '--include=dev', '--production=false', '--no-audit', '--no-fund'], $siteRoot, 'Node dependency install failed', allowFailure: true);
 
             if ($npmInstallWarning !== null) {
                 $warnings[] = $npmInstallWarning;
@@ -237,16 +237,24 @@ class SiteProvisioner
         return $warnings;
     }
 
-    private function applyStarterRuntimeDefaults(string $siteRoot): void
+    private function applyStarterRuntimeDefaults(string $siteRoot, ?string $appUrl = null): void
     {
         $envPath = $this->joinPath($siteRoot, '.env');
         $content = (string) File::get($envPath);
 
-        foreach ([
+        $defaults = [
             'SESSION_DRIVER' => 'file',
             'CACHE_STORE' => 'file',
             'QUEUE_CONNECTION' => 'sync',
-        ] as $key => $value) {
+        ];
+
+        if (is_string($appUrl) && $appUrl !== '') {
+            $defaults['APP_URL'] = str_starts_with($appUrl, 'http://') || str_starts_with($appUrl, 'https://')
+                ? $appUrl
+                : "http://{$appUrl}";
+        }
+
+        foreach ($defaults as $key => $value) {
             if (preg_match("/^{$key}=.*$/m", $content) === 1) {
                 $content = preg_replace("/^{$key}=.*$/m", "{$key}={$value}", $content) ?? $content;
             } else {
