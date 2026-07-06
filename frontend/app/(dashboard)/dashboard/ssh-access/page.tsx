@@ -140,7 +140,10 @@ export default function SshAccessPage() {
   const port = String(ssh?.port || 22);
   const username = ssh?.username || "provisioning";
   const enabled = Boolean(ssh?.enabled);
-  const sshCommand = `ssh -p ${port} ${username}@${host}`;
+  const keyPath = "~/.ssh/berrypanel";
+  const createKeyCommand = `ssh-keygen -t ed25519 -f ${keyPath} -C "berrypanel"`;
+  const showPublicKeyCommand = `cat ${keyPath}.pub`;
+  const sshCommand = `ssh -i ${keyPath} -p ${port} ${username}@${host}`;
 
   const details = useMemo(
     () => [
@@ -246,12 +249,38 @@ export default function SshAccessPage() {
           </div>
 
           <div className="p-6">
-            <Label htmlFor="public-key">SSH public key</Label>
+            <div className="mb-6 grid gap-4 lg:grid-cols-3">
+              {[
+                ["1", "Create a key", createKeyCommand],
+                ["2", "Copy the public key", showPublicKeyCommand],
+                ["3", "Paste it below", "Enable SSH"],
+              ].map(([step, title, command]) => (
+                <div
+                  key={step}
+                  className="rounded-2xl border border-black/10 bg-[#f7f7f7] p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="grid size-8 place-items-center rounded-full bg-black text-sm font-semibold text-white">
+                      {step}
+                    </span>
+                    <h3 className="font-semibold">{title}</h3>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 font-mono text-xs text-[#333]">
+                    <span className="break-all">{command}</span>
+                    {step !== "3" && (
+                      <CopyButton value={command} label={`${title} command`} />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Label htmlFor="public-key">Public key</Label>
             <textarea
               id="public-key"
               value={publicKey}
               onChange={(event) => setPublicKey(event.target.value)}
-              placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@email.com"
+              placeholder="Paste the output of: cat ~/.ssh/berrypanel.pub"
               className="mt-3 min-h-36 w-full resize-y rounded-2xl border border-black/10 bg-white px-4 py-3 font-mono text-sm outline-none transition focus:border-[#7047f5] focus:ring-4 focus:ring-[#7047f5]/10"
             />
             <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -265,8 +294,8 @@ export default function SshAccessPage() {
                 {enabled ? "Update SSH Key" : "Enable SSH"}
               </Button>
               <p className="text-sm text-[#666]">
-                Paste the public key only. Keep the private key on your own
-                device.
+                BerryPanel installs this key on the server. The private key
+                stays only on your own device.
               </p>
             </div>
           </div>
@@ -291,7 +320,7 @@ export default function SshAccessPage() {
                 Use a built-in terminal on your device
               </h3>
               <p className="mt-4 text-base leading-6 text-[#666]">
-                Open your terminal and paste this command after SSH is enabled.
+                After SSH is enabled, paste this command into your terminal.
               </p>
               <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#f0ecff] px-6 py-5 font-mono text-sm">
                 <span className="break-all">{sshCommand}</span>
@@ -317,10 +346,8 @@ export default function SshAccessPage() {
           <div className="flex items-start gap-3">
             <Terminal className="mt-1 size-5 shrink-0" />
             <p className="text-sm leading-6 text-[#5f5223]">
-              To create a key on your computer, run{" "}
-              <span className="font-mono">ssh-keygen -t ed25519</span>, then
-              paste the contents of{" "}
-              <span className="font-mono">~/.ssh/id_ed25519.pub</span> here.
+              Your friends only need this page: create a key, paste the public
+              key, copy the SSH command, then run their Laravel commands.
             </p>
           </div>
         </section>

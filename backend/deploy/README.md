@@ -162,17 +162,32 @@ sudo ufw allow 22/tcp
 The user creates a key on their own computer:
 
 ```bash
-ssh-keygen -t ed25519
-cat ~/.ssh/id_ed25519.pub
+ssh-keygen -t ed25519 -f ~/.ssh/berrypanel -C "berrypanel"
+cat ~/.ssh/berrypanel.pub
 ```
 
 They paste the public key into BerryPanel. After that they can connect:
 
 ```bash
-ssh -p 22 user_1@192.168.254.113
+ssh -i ~/.ssh/berrypanel -p 22 user_1@192.168.254.113
 cd sites/test2
 php artisan migrate --force
 php artisan key:generate --force
+```
+
+If SSH says `Permission denied (publickey)`, check the Pi:
+
+```bash
+sudo ls -la /srv/berrypanel/users/user_1/.ssh
+sudo cat /srv/berrypanel/users/user_1/.ssh/authorized_keys
+sudo tail -n 80 /var/log/auth.log
+```
+
+The public key in `authorized_keys` must match the public key from the user's
+computer:
+
+```bash
+cat ~/.ssh/berrypanel.pub
 ```
 
 Finish the backend app install:
