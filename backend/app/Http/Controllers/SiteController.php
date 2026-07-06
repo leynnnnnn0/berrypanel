@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Services\NginxSiteProvisioner;
 use App\Services\SiteProvisioner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,7 +49,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function store(Request $request, SiteProvisioner $provisioner): JsonResponse
+    public function store(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -79,10 +80,18 @@ class SiteController extends Controller
         }
 
         $branch = $validated['repository_branch'] ?? 'main';
+        $phpVersion = $validated['php_version'] ?? '8.4';
+        $localUrl = $this->siteHost($slug);
 
         try {
             $paths = $provisioner->provision($user, $slug, $validated['repository_url'], $branch);
+
+            $nginx->provision($slug, $localUrl, $paths['public_path'], $phpVersion);
         } catch (RuntimeException $exception) {
+            if (isset($paths['root_path'])) {
+                $provisioner->deletePath($paths['root_path']);
+            }
+
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
@@ -91,11 +100,11 @@ class SiteController extends Controller
             'name' => $validated['name'],
             'slug' => $slug,
             'stack' => 'Laravel / Inertia',
-            'php_version' => $validated['php_version'] ?? '8.4',
+            'php_version' => $phpVersion,
             'status' => $paths['deployed'] ? 'needs_configuration' : 'provisioned',
             'root_path' => $paths['root_path'],
             'public_path' => $paths['public_path'],
-            'local_url' => $this->siteHost($slug),
+            'local_url' => $localUrl,
             'repository_url' => $validated['repository_url'],
             'repository_branch' => $branch,
             'env_variables' => $paths['env_variables'] ?? null,
@@ -156,11 +165,12 @@ class SiteController extends Controller
         return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
     }
 
-    public function destroy(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
+    public function destroy(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx, Site $site): JsonResponse
     {
         $this->authorizeSite($request, $site);
 
         try {
+            $nginx->delete($site);
             $provisioner->delete($site);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);

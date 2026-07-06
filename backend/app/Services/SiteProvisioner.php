@@ -81,6 +81,15 @@ class SiteProvisioner
         $this->ensureSitePathIsInsideUsersRoot($sitePath);
 
         if (File::isDirectory($sitePath)) {
+            $this->deletePath($sitePath);
+        }
+    }
+
+    public function deletePath(string $sitePath): void
+    {
+        $this->ensureSitePathIsInsideUsersRoot($sitePath);
+
+        if (File::isDirectory($sitePath)) {
             File::deleteDirectory($sitePath);
         }
     }

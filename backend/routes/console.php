@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Site;
+use App\Services\NginxSiteProvisioner;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
@@ -83,3 +85,38 @@ Artisan::command('berrypanel:doctor', function () {
 
     return 0;
 })->purpose('Check whether the Raspberry Pi backend can provision BerryPanel resources');
+
+Artisan::command('berrypanel:nginx:sync {site?}', function () {
+    if (! (bool) config('berrypanel.nginx_provisioning_enabled')) {
+        $this->warn('BERRYPANEL_NGINX_PROVISIONING_ENABLED=false. Enable it before syncing Nginx sites.');
+
+        return 1;
+    }
+
+    $siteSlug = $this->argument('site');
+    $sites = Site::query()
+        ->when($siteSlug, fn ($query) => $query->where('slug', $siteSlug))
+        ->get();
+
+    if ($sites->isEmpty()) {
+        $this->warn($siteSlug ? "No site found for slug [{$siteSlug}]." : 'No sites found.');
+
+        return 1;
+    }
+
+    /** @var NginxSiteProvisioner $nginx */
+    $nginx = app(NginxSiteProvisioner::class);
+
+    foreach ($sites as $site) {
+        if (! $site->local_url || ! $site->public_path) {
+            $this->warn("SKIP {$site->slug}: missing local URL or public path.");
+
+            continue;
+        }
+
+        $nginx->provision($site->slug, $site->local_url, $site->public_path, $site->php_version);
+        $this->info("SYNCED {$site->local_url} -> {$site->public_path}");
+    }
+
+    return 0;
+})->purpose('Create or refresh Nginx virtual hosts for existing BerryPanel sites');
