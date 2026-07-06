@@ -65,13 +65,21 @@ type UsageResponse = {
     total_bytes: number;
     quota_bytes: number;
     percent: number;
+    file_count: number;
+    directory_count: number;
     breakdown: {
-      application: number;
-      uploads: number;
-      backups: number;
-      logs: number;
+      application: UsageBreakdownItem;
+      uploads: UsageBreakdownItem;
+      backups: UsageBreakdownItem;
+      logs: UsageBreakdownItem;
     };
   };
+};
+
+type UsageBreakdownItem = {
+  bytes: number;
+  files: number;
+  directories: number;
 };
 
 const activities = [
@@ -136,18 +144,42 @@ function siteStatusLabel(status: string): string {
   return status;
 }
 
-function formatBytesAsGb(bytes: number) {
-  const gb = bytes / 1024 / 1024 / 1024;
-
-  if (gb === 0) {
-    return "0GB";
+function formatBytes(bytes: number) {
+  if (bytes <= 0) {
+    return "0 B";
   }
 
-  if (gb < 0.1) {
-    return `${gb.toFixed(2)}GB`;
+  if (bytes < 1024) {
+    return `${bytes} B`;
   }
 
-  return `${gb.toFixed(1)}GB`;
+  const kb = bytes / 1024;
+
+  if (kb < 1024) {
+    return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  }
+
+  const mb = kb / 1024;
+
+  if (mb < 1024) {
+    return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+  }
+
+  const gb = mb / 1024;
+
+  return `${gb.toFixed(gb < 10 ? 1 : 0)} GB`;
+}
+
+function formatCount(count: number, singular: string) {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+
+function formatBreakdownDetail(item?: UsageBreakdownItem) {
+  if (!item) {
+    return "0 files";
+  }
+
+  return `${formatCount(item.files, "file")} / ${formatCount(item.directories, "folder")}`;
 }
 
 function SectionTitle({
@@ -313,28 +345,38 @@ export default function DashboardPage() {
     loadUsage();
   }, []);
 
-  const storageUsed = usage ? formatBytesAsGb(usage.total_bytes) : loadingUsage ? "..." : "0GB";
-  const storageQuota = usage ? formatBytesAsGb(usage.quota_bytes) : "25GB";
+  const storageUsed = usage ? formatBytes(usage.total_bytes) : loadingUsage ? "..." : "0 B";
+  const storageQuota = usage ? formatBytes(usage.quota_bytes) : "25 GB";
   const storagePercent = usage ? usage.percent : 0;
+  const visibleStoragePercent = usage && usage.total_bytes > 0 ? Math.max(1, storagePercent) : 0;
+  const workspaceCountDetail = usage
+    ? `${formatCount(usage.file_count, "file")} / ${formatCount(usage.directory_count, "folder")}`
+    : loadingUsage
+      ? "Scanning workspace"
+      : "0 files / 0 folders";
   const storageBreakdown = [
     {
       label: "Application files",
-      value: usage ? formatBytesAsGb(usage.breakdown.application) : loadingUsage ? "..." : "0GB",
+      value: usage ? formatBytes(usage.breakdown.application.bytes) : loadingUsage ? "..." : "0 B",
+      detail: formatBreakdownDetail(usage?.breakdown.application),
       icon: Folder,
     },
     {
       label: "Uploads",
-      value: usage ? formatBytesAsGb(usage.breakdown.uploads) : loadingUsage ? "..." : "0GB",
+      value: usage ? formatBytes(usage.breakdown.uploads.bytes) : loadingUsage ? "..." : "0 B",
+      detail: formatBreakdownDetail(usage?.breakdown.uploads),
       icon: CloudUpload,
     },
     {
       label: "Backups",
-      value: usage ? formatBytesAsGb(usage.breakdown.backups) : loadingUsage ? "..." : "0GB",
+      value: usage ? formatBytes(usage.breakdown.backups.bytes) : loadingUsage ? "..." : "0 B",
+      detail: formatBreakdownDetail(usage?.breakdown.backups),
       icon: HardDrive,
     },
     {
       label: "Logs",
-      value: usage ? formatBytesAsGb(usage.breakdown.logs) : loadingUsage ? "..." : "0GB",
+      value: usage ? formatBytes(usage.breakdown.logs.bytes) : loadingUsage ? "..." : "0 B",
+      detail: formatBreakdownDetail(usage?.breakdown.logs),
       icon: Terminal,
     },
   ];
@@ -357,10 +399,10 @@ export default function DashboardPage() {
         detail: sites.length === 1 ? "site" : "sites",
       },
       { label: "Deployments", value: "0", detail: "coming soon" },
-      { label: "Storage", value: storageUsed, detail: `of ${storageQuota}` },
+      { label: "Storage", value: storageUsed, detail: workspaceCountDetail },
       { label: "Databases", value: "0", detail: "coming soon" },
     ],
-    [loadingSites, sites.length, storageQuota, storageUsed],
+    [loadingSites, sites.length, storageUsed, workspaceCountDetail],
   );
 
   return (
@@ -385,7 +427,10 @@ export default function DashboardPage() {
                 <Button
                   className="h-12 rounded-full bg-black px-5 text-sm font-medium text-white hover:bg-black/85"
                   disabled={creatingSite}
-                  onClick={() => setSiteDialogOpen(true)}
+                  onClick={() => {
+                    setCreateError("");
+                    setSiteDialogOpen(true);
+                  }}
                 >
                   <Plus className="size-4" />
                   {creatingSite ? "Creating..." : "New Laravel Site"}
@@ -424,9 +469,12 @@ export default function DashboardPage() {
                   <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/70">
                     <div
                       className="h-full rounded-full bg-black transition-all"
-                      style={{ width: `${Math.min(100, storagePercent)}%` }}
+                      style={{ width: `${Math.min(100, visibleStoragePercent)}%` }}
                     />
                   </div>
+                  <p className="mt-2 text-xs text-[#4f4960]">
+                    {storagePercent}% used / {workspaceCountDetail}
+                  </p>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   {["PHP 8.4", "MariaDB", "SSL"].map((item) => (
@@ -587,7 +635,12 @@ export default function DashboardPage() {
                     <span className="grid size-10 place-items-center rounded-full bg-white">
                       <item.icon className="size-5" />
                     </span>
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <div>
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="mt-0.5 text-xs text-[#777]">
+                        {item.detail}
+                      </p>
+                    </div>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-sm">
                     {item.value}
@@ -735,7 +788,10 @@ export default function DashboardPage() {
                   <Input
                     id="site-name"
                     value={siteName}
-                    onChange={(event) => setSiteName(event.target.value)}
+                    onChange={(event) => {
+                      setCreateError("");
+                      setSiteName(event.target.value);
+                    }}
                     placeholder="my-laravel-site"
                     pattern="[A-Za-z0-9][A-Za-z0-9 -]*[A-Za-z0-9]"
                     required
@@ -756,7 +812,10 @@ export default function DashboardPage() {
                     id="repository-url"
                     type="url"
                     value={repositoryUrl}
-                    onChange={(event) => setRepositoryUrl(event.target.value)}
+                    onChange={(event) => {
+                      setCreateError("");
+                      setRepositoryUrl(event.target.value);
+                    }}
                     placeholder="https://github.com/user/laravel-app"
                     pattern="https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?"
                     required
@@ -775,9 +834,10 @@ export default function DashboardPage() {
                   <Input
                     id="repository-branch"
                     value={repositoryBranch}
-                    onChange={(event) =>
-                      setRepositoryBranch(event.target.value)
-                    }
+                    onChange={(event) => {
+                      setCreateError("");
+                      setRepositoryBranch(event.target.value);
+                    }}
                     placeholder="main"
                     pattern="[A-Za-z0-9._/-]+"
                     required

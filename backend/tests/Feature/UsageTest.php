@@ -34,8 +34,10 @@ test('a user can view storage usage for their linux workspace', function () {
         ->assertOk()
         ->assertJsonPath('usage.total_bytes', 100)
         ->assertJsonPath('usage.quota_bytes', 26843545600)
-        ->assertJsonPath('usage.breakdown.uploads', 10)
-        ->assertJsonPath('usage.breakdown.logs', 20)
-        ->assertJsonPath('usage.breakdown.backups', 30)
-        ->assertJsonPath('usage.breakdown.application', 40);
+        ->assertJsonPath('usage.file_count', 4)
+        ->assertJsonPath('usage.breakdown.uploads.bytes', 10)
+        ->assertJsonPath('usage.breakdown.uploads.files', 1)
+        ->assertJsonPath('usage.breakdown.logs.bytes', 20)
+        ->assertJsonPath('usage.breakdown.backups.bytes', 30)
+        ->assertJsonPath('usage.breakdown.application.bytes', 40);
 });
