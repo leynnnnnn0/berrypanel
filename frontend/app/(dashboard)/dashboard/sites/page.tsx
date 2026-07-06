@@ -242,7 +242,12 @@ export default function SitesPage() {
                       <Globe2 className="size-5" />
                     </span>
                     <div>
-                      <p className="font-medium">{site.name}</p>
+                      <Link
+                        href={`/dashboard/sites/${site.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {site.name}
+                      </Link>
                       <p className="text-xs text-[#777]">
                         {site.stack} / PHP {site.php_version}
                       </p>
@@ -305,6 +310,12 @@ export default function SitesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="min-w-48">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/sites/${site.id}`}>
+                            <ArrowUpRight className="size-4" />
+                            Open details
+                          </Link>
+                        </DropdownMenuItem>
                         {site.repository_url && (
                           <DropdownMenuItem asChild>
                             <a

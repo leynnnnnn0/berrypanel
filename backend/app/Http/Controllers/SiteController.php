@@ -12,6 +12,31 @@ use RuntimeException;
 
 class SiteController extends Controller
 {
+    private const ENV_KEYS = [
+        'APP_NAME',
+        'APP_ENV',
+        'APP_KEY',
+        'APP_DEBUG',
+        'APP_URL',
+        'LOG_CHANNEL',
+        'DB_CONNECTION',
+        'DB_HOST',
+        'DB_PORT',
+        'DB_DATABASE',
+        'DB_USERNAME',
+        'DB_PASSWORD',
+        'CACHE_STORE',
+        'QUEUE_CONNECTION',
+        'SESSION_DRIVER',
+        'MAIL_MAILER',
+        'MAIL_HOST',
+        'MAIL_PORT',
+        'MAIL_USERNAME',
+        'MAIL_PASSWORD',
+        'MAIL_FROM_ADDRESS',
+        'MAIL_FROM_NAME',
+    ];
+
     public function index(Request $request): JsonResponse
     {
         return response()->json([
@@ -68,7 +93,7 @@ class SiteController extends Controller
             'status' => 'provisioned',
             'root_path' => $paths['root_path'],
             'public_path' => $paths['public_path'],
-            'local_url' => "{$slug}.berrypanel.local",
+            'local_url' => $this->siteHost($slug),
             'repository_url' => $validated['repository_url'],
             'repository_branch' => $validated['repository_branch'] ?? 'main',
         ]);
@@ -76,11 +101,61 @@ class SiteController extends Controller
         return response()->json(['site' => $this->serialize($site)], 201);
     }
 
+    public function show(Request $request, Site $site): JsonResponse
+    {
+        $this->authorizeSite($request, $site);
+
+        return response()->json(['site' => $this->serialize($site, includeEnvironment: true)]);
+    }
+
+    public function updateEnvironment(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
+    {
+        $this->authorizeSite($request, $site);
+
+        $request->validate([
+            'variables' => ['required', 'array'],
+            'variables.APP_NAME' => ['nullable', 'string', 'max:120'],
+            'variables.APP_ENV' => ['nullable', 'string', 'in:local,staging,production'],
+            'variables.APP_KEY' => ['nullable', 'string', 'max:120'],
+            'variables.APP_DEBUG' => ['nullable', 'in:true,false,1,0'],
+            'variables.APP_URL' => ['nullable', 'url', 'max:255'],
+            'variables.LOG_CHANNEL' => ['nullable', 'string', 'max:80'],
+            'variables.DB_CONNECTION' => ['nullable', 'string', 'in:mysql,mariadb,pgsql,sqlite'],
+            'variables.DB_HOST' => ['nullable', 'string', 'max:120'],
+            'variables.DB_PORT' => ['nullable', 'integer', 'between:1,65535'],
+            'variables.DB_DATABASE' => ['nullable', 'string', 'max:120'],
+            'variables.DB_USERNAME' => ['nullable', 'string', 'max:120'],
+            'variables.DB_PASSWORD' => ['nullable', 'string', 'max:255'],
+            'variables.CACHE_STORE' => ['nullable', 'string', 'max:80'],
+            'variables.QUEUE_CONNECTION' => ['nullable', 'string', 'max:80'],
+            'variables.SESSION_DRIVER' => ['nullable', 'string', 'max:80'],
+            'variables.MAIL_MAILER' => ['nullable', 'string', 'max:80'],
+            'variables.MAIL_HOST' => ['nullable', 'string', 'max:120'],
+            'variables.MAIL_PORT' => ['nullable', 'integer', 'between:1,65535'],
+            'variables.MAIL_USERNAME' => ['nullable', 'string', 'max:120'],
+            'variables.MAIL_PASSWORD' => ['nullable', 'string', 'max:255'],
+            'variables.MAIL_FROM_ADDRESS' => ['nullable', 'email', 'max:120'],
+            'variables.MAIL_FROM_NAME' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $variables = $this->defaultEnvironment($site);
+
+        foreach (self::ENV_KEYS as $key) {
+            if ($request->has("variables.{$key}")) {
+                $variables[$key] = $request->input("variables.{$key}") ?? '';
+            }
+        }
+
+        $provisioner->writeEnvironmentFile($site, $variables);
+
+        $site->forceFill(['env_variables' => $variables])->save();
+
+        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
+    }
+
     public function destroy(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
     {
-        if ($site->user_id !== $request->user()->id) {
-            abort(404);
-        }
+        $this->authorizeSite($request, $site);
 
         try {
             $provisioner->delete($site);
@@ -93,9 +168,9 @@ class SiteController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    private function serialize(Site $site): array
+    private function serialize(Site $site, bool $includeEnvironment = false): array
     {
-        return [
+        $payload = [
             'id' => $site->id,
             'name' => $site->name,
             'slug' => $site->slug,
@@ -109,5 +184,65 @@ class SiteController extends Controller
             'repository_branch' => $site->repository_branch,
             'created_at' => $site->created_at?->toISOString(),
         ];
+
+        if ($includeEnvironment) {
+            $payload['env_variables'] = $site->env_variables ?: $this->defaultEnvironment($site);
+        }
+
+        return $payload;
+    }
+
+    private function authorizeSite(Request $request, Site $site): void
+    {
+        if ($site->user_id !== $request->user()->id) {
+            abort(404);
+        }
+    }
+
+    private function defaultEnvironment(Site $site): array
+    {
+        return [
+            'APP_NAME' => $site->name,
+            'APP_ENV' => 'production',
+            'APP_KEY' => '',
+            'APP_DEBUG' => 'false',
+            'APP_URL' => $site->local_url ? "http://{$site->local_url}" : '',
+            'LOG_CHANNEL' => 'stack',
+            'DB_CONNECTION' => 'mysql',
+            'DB_HOST' => '127.0.0.1',
+            'DB_PORT' => '3306',
+            'DB_DATABASE' => Str::slug($site->slug, '_').'_db',
+            'DB_USERNAME' => $site->user?->linux_username ?? '',
+            'DB_PASSWORD' => '',
+            'CACHE_STORE' => 'database',
+            'QUEUE_CONNECTION' => 'database',
+            'SESSION_DRIVER' => 'database',
+            'MAIL_MAILER' => 'log',
+            'MAIL_HOST' => '',
+            'MAIL_PORT' => '',
+            'MAIL_USERNAME' => '',
+            'MAIL_PASSWORD' => '',
+            'MAIL_FROM_ADDRESS' => '',
+            'MAIL_FROM_NAME' => $site->name,
+        ];
+    }
+
+    private function siteHost(string $slug): string
+    {
+        $suffix = trim((string) config('berrypanel.site_domain_suffix'));
+        $serverIp = trim((string) config('berrypanel.server_ip'));
+
+        if ($suffix === '' && filter_var($serverIp, FILTER_VALIDATE_IP)) {
+            $suffix = "{$serverIp}.nip.io";
+        }
+
+        if ($suffix === '') {
+            $suffix = 'berrypanel.local';
+        }
+
+        $suffix = preg_replace('#^https?://#', '', $suffix) ?? $suffix;
+        $suffix = trim($suffix, " \t\n\r\0\x0B.");
+
+        return "{$slug}.{$suffix}";
     }
 }

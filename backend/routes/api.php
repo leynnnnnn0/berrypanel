@@ -6,6 +6,7 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
+use App\Http\Controllers\HostingDatabaseController;
 use App\Http\Controllers\SiteController;
 
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
@@ -23,10 +24,17 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::get('/user', fn($req) => response()->json($req->user()));
+    Route::get('/user', fn(Request $request) => response()->json(
+        $request->user()->only('id', 'name', 'email', 'linux_username')
+    ));
     Route::get('/sites', [SiteController::class, 'index']);
     Route::post('/sites', [SiteController::class, 'store']);
+    Route::get('/sites/{site}', [SiteController::class, 'show']);
+    Route::put('/sites/{site}/env', [SiteController::class, 'updateEnvironment']);
     Route::delete('/sites/{site}', [SiteController::class, 'destroy']);
+    Route::get('/databases', [HostingDatabaseController::class, 'index']);
+    Route::post('/databases', [HostingDatabaseController::class, 'store']);
+    Route::delete('/databases/{database}', [HostingDatabaseController::class, 'destroy']);
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 

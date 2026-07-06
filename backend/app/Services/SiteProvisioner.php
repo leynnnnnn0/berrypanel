@@ -56,22 +56,44 @@ class SiteProvisioner
 
     public function delete(Site $site): void
     {
-        $usersRoot = (string) config('berrypanel.users_root');
         $sitePath = $site->root_path;
 
         if (! is_string($sitePath) || $sitePath === '') {
             return;
         }
 
-        $normalizedRoot = realpath($usersRoot) ?: $usersRoot;
-        $normalizedSitePath = realpath($sitePath) ?: $sitePath;
-
-        if (! str_starts_with($normalizedSitePath, rtrim($normalizedRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
-            throw new RuntimeException('BerryPanel refused to delete a path outside the configured users root.');
-        }
+        $this->ensureSitePathIsInsideUsersRoot($sitePath);
 
         if (File::isDirectory($sitePath)) {
             File::deleteDirectory($sitePath);
+        }
+    }
+
+    public function writeEnvironmentFile(Site $site, array $variables): void
+    {
+        $sitePath = $site->root_path;
+
+        if (! is_string($sitePath) || $sitePath === '') {
+            throw new RuntimeException('This site does not have a valid root path.');
+        }
+
+        $this->ensureSitePathIsInsideUsersRoot($sitePath);
+
+        if (! File::isDirectory($sitePath)) {
+            throw new RuntimeException("BerryPanel cannot find the site folder at {$sitePath}.");
+        }
+
+        $content = collect($variables)
+            ->map(fn (mixed $value, string $key) => "{$key}=".$this->formatEnvValue($value))
+            ->implode(PHP_EOL).PHP_EOL;
+
+        try {
+            File::put($this->joinPath($sitePath, '.env'), $content, true);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(
+                "BerryPanel cannot write the .env file for {$site->name}. Check site folder permissions.",
+                previous: $exception,
+            );
         }
     }
 
@@ -103,5 +125,35 @@ class SiteProvisioner
                 "BerryPanel users root is not writable: {$usersRoot}. For local dev, leave BERRYPANEL_USERS_ROOT empty. On Raspberry Pi, run the /srv permission setup commands.",
             );
         }
+    }
+
+    private function ensureSitePathIsInsideUsersRoot(string $sitePath): void
+    {
+        $usersRoot = (string) config('berrypanel.users_root');
+        $normalizedRoot = realpath($usersRoot) ?: $usersRoot;
+        $normalizedSitePath = realpath($sitePath) ?: $sitePath;
+
+        if (! str_starts_with($normalizedSitePath, rtrim($normalizedRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('BerryPanel refused to access a path outside the configured users root.');
+        }
+    }
+
+    private function formatEnvValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        $value = (string) $value;
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/\s|#|"|\'|\\\\/', $value) === 1) {
+            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
+        }
+
+        return $value;
     }
 }

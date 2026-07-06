@@ -5,28 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
+    'site_id',
     'name',
-    'slug',
-    'stack',
-    'php_version',
+    'username',
+    'password',
+    'driver',
+    'host',
+    'port',
     'status',
-    'root_path',
-    'public_path',
-    'local_url',
-    'repository_url',
-    'repository_branch',
-    'env_variables',
 ])]
-class Site extends Model
+class HostingDatabase extends Model
 {
     protected function casts(): array
     {
         return [
-            'env_variables' => 'encrypted:array',
+            'password' => 'encrypted',
         ];
     }
 
@@ -35,8 +31,8 @@ class Site extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function hostingDatabases(): HasMany
+    public function site(): BelongsTo
     {
-        return $this->hasMany(HostingDatabase::class);
+        return $this->belongsTo(Site::class);
     }
 }
