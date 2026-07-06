@@ -26,11 +26,13 @@ import {
   HardDrive,
   KeyRound,
   LifeBuoy,
+  Loader2,
   LockKeyhole,
   Plus,
   ServerCog,
   Terminal,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -62,6 +64,25 @@ const activities = [
   "database default_db migrated",
   "storage link refreshed",
   "pending DNS check for client-portal",
+];
+
+const deploySteps = [
+  {
+    label: "Preparing workspace",
+    body: "Creating the Linux user site folder and permissions.",
+  },
+  {
+    label: "Cloning repository",
+    body: "Pulling the public GitHub repository and selected branch.",
+  },
+  {
+    label: "Creating Laravel folders",
+    body: "Ensuring public, storage, logs, and backup paths exist.",
+  },
+  {
+    label: "Saving site",
+    body: "Registering the site in your BerryPanel dashboard.",
+  },
 ];
 
 function StatusPill({ children }: { children: string }) {
@@ -160,6 +181,8 @@ export default function DashboardPage() {
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [repositoryBranch, setRepositoryBranch] = useState("main");
   const [error, setError] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [deployStep, setDeployStep] = useState(0);
 
   async function loadSites() {
     setLoadingSites(true);
@@ -179,6 +202,8 @@ export default function DashboardPage() {
     event.preventDefault();
     setCreatingSite(true);
     setError("");
+    setCreateError("");
+    setDeployStep(0);
 
     try {
       const response = await api<CreateSiteResponse>("/api/sites", {
@@ -197,11 +222,25 @@ export default function DashboardPage() {
       setRepositoryBranch("main");
       setSiteDialogOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to create site");
+      const message = err instanceof Error ? err.message : "Unable to create site";
+      setCreateError(message);
+      setError(message);
     } finally {
       setCreatingSite(false);
     }
   }
+
+  useEffect(() => {
+    if (!creatingSite) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setDeployStep((current) => Math.min(current + 1, deploySteps.length - 1));
+    }, 2600);
+
+    return () => window.clearInterval(interval);
+  }, [creatingSite]);
 
   useEffect(() => {
     loadSites();
@@ -489,7 +528,14 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      <Dialog open={siteDialogOpen} onOpenChange={setSiteDialogOpen}>
+      <Dialog
+        open={siteDialogOpen}
+        onOpenChange={(open) => {
+          if (!creatingSite) {
+            setSiteDialogOpen(open);
+          }
+        }}
+      >
         <DialogContent className="max-w-xl border-0 p-0">
           <form onSubmit={createLaravelSite}>
             <div className="overflow-hidden rounded-3xl bg-white">
@@ -502,13 +548,91 @@ export default function DashboardPage() {
                     New Laravel Site
                   </DialogTitle>
                   <DialogDescription className="max-w-md text-[#4f4960]">
-                    BerryPanel will create the site folder and remember the
-                    public GitHub repository that will be deployed from.
+                    BerryPanel will create the site folder and pull the public
+                    GitHub repository into your Raspberry Pi workspace.
                   </DialogDescription>
                 </DialogHeader>
               </div>
 
               <div className="space-y-5 p-6">
+                {creatingSite && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="overflow-hidden rounded-3xl border border-[#ded8f3] bg-[#f7f3ff]"
+                  >
+                    <div className="flex items-start gap-4 p-4">
+                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#171717] shadow-sm">
+                        <Loader2 className="size-5 animate-spin" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#171717]">
+                          Deploying your Laravel site
+                        </p>
+                        <p className="mt-1 text-sm leading-5 text-[#6b6478]">
+                          Keep this window open while BerryPanel talks to GitHub.
+                          Public repositories usually finish in under a minute.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="h-1 bg-white">
+                      <motion.div
+                        className="h-full bg-[#d8cef2]"
+                        initial={{ width: "15%" }}
+                        animate={{
+                          width: `${Math.max(25, ((deployStep + 1) / deploySteps.length) * 100)}%`,
+                        }}
+                        transition={{ duration: 0.35 }}
+                      />
+                    </div>
+                    <div className="grid gap-3 p-4 pt-3">
+                      {deploySteps.map((step, index) => {
+                        const isDone = index < deployStep;
+                        const isActive = index === deployStep;
+
+                        return (
+                          <div
+                            key={step.label}
+                            className="flex items-start gap-3 rounded-2xl bg-white/65 p-3"
+                          >
+                            <span
+                              className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-full ${
+                                isDone
+                                  ? "bg-[#dff8c8] text-[#2c4a1f]"
+                                  : isActive
+                                    ? "bg-[#171717] text-white"
+                                    : "bg-white text-[#8a8495]"
+                              }`}
+                            >
+                              {isDone ? (
+                                <CheckCircle2 className="size-4" />
+                              ) : isActive ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <span className="size-2 rounded-full bg-current" />
+                              )}
+                            </span>
+                            <div>
+                              <p className="text-sm font-medium text-[#171717]">
+                                {step.label}
+                              </p>
+                              <p className="text-xs leading-5 text-[#6b6478]">
+                                {step.body}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                {createError && (
+                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-600">
+                    {createError}
+                  </p>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="site-name" className="text-[#333]">
                     Site name
@@ -520,6 +644,7 @@ export default function DashboardPage() {
                     placeholder="my-laravel-site"
                     pattern="[A-Za-z0-9][A-Za-z0-9 -]*[A-Za-z0-9]"
                     required
+                    disabled={creatingSite}
                     className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
                   />
                   <p className="text-xs leading-5 text-[#777]">
@@ -540,6 +665,7 @@ export default function DashboardPage() {
                     placeholder="https://github.com/user/laravel-app"
                     pattern="https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?"
                     required
+                    disabled={creatingSite}
                     className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
                   />
                   <p className="text-xs leading-5 text-[#777]">
@@ -560,6 +686,7 @@ export default function DashboardPage() {
                     placeholder="main"
                     pattern="[A-Za-z0-9._/-]+"
                     required
+                    disabled={creatingSite}
                     className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
                   />
                 </div>
@@ -585,6 +712,7 @@ export default function DashboardPage() {
                     variant="outline"
                     className="h-11 rounded-full px-5"
                     onClick={() => setSiteDialogOpen(false)}
+                    disabled={creatingSite}
                   >
                     Cancel
                   </Button>
@@ -593,7 +721,14 @@ export default function DashboardPage() {
                     className="h-11 rounded-full bg-black px-5 text-white hover:bg-black/85"
                     disabled={creatingSite}
                   >
-                    {creatingSite ? "Creating site..." : "Create site"}
+                    {creatingSite ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Deploying...
+                      </>
+                    ) : (
+                      "Create site"
+                    )}
                   </Button>
                 </DialogFooter>
               </div>

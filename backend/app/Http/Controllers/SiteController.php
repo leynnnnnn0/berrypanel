@@ -78,8 +78,10 @@ class SiteController extends Controller
             $user->forceFill(['linux_username' => 'user_'.$user->id])->save();
         }
 
+        $branch = $validated['repository_branch'] ?? 'main';
+
         try {
-            $paths = $provisioner->provision($user, $slug);
+            $paths = $provisioner->provision($user, $slug, $validated['repository_url'], $branch);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
@@ -90,12 +92,12 @@ class SiteController extends Controller
             'slug' => $slug,
             'stack' => 'Laravel / Inertia',
             'php_version' => $validated['php_version'] ?? '8.4',
-            'status' => 'provisioned',
+            'status' => $paths['deployed'] ? 'deployed' : 'provisioned',
             'root_path' => $paths['root_path'],
             'public_path' => $paths['public_path'],
             'local_url' => $this->siteHost($slug),
             'repository_url' => $validated['repository_url'],
-            'repository_branch' => $validated['repository_branch'] ?? 'main',
+            'repository_branch' => $branch,
         ]);
 
         return response()->json(['site' => $this->serialize($site)], 201);

@@ -6,6 +6,7 @@ This is the backend checklist for testing the current BerryPanel MVP on your Pi.
 
 - User registration and login.
 - Laravel site folder creation under `/srv/berrypanel/users/{linux_username}/sites/{site}`.
+- Public GitHub repository clone into the site folder when Git deploy is enabled.
 - BerryPanel-generated site hostnames like `site-name.192.168.254.113.nip.io`.
 - Per-site `.env` writing.
 - Database record creation.
@@ -13,7 +14,6 @@ This is the backend checklist for testing the current BerryPanel MVP on your Pi.
 
 ## Not Ready Yet
 
-- GitHub clone/deploy into the site folder.
 - Nginx vhost generation for each site.
 - SSL/Cloudflare.
 - Queue, scheduler, and Reverb process management.
@@ -69,6 +69,7 @@ Edit `.env`:
 APP_URL=http://192.168.254.113
 BERRYPANEL_USERS_ROOT=/srv/berrypanel/users
 BERRYPANEL_SERVER_IP=192.168.254.113
+BERRYPANEL_GIT_DEPLOY_ENABLED=true
 BERRYPANEL_DATABASE_PROVISIONING_ENABLED=true
 BERRYPANEL_MYSQL_ADMIN_USERNAME=berrypanel_admin
 BERRYPANEL_MYSQL_ADMIN_PASSWORD=your-real-admin-password

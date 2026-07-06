@@ -6,10 +6,11 @@ use App\Models\Site;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
+use Symfony\Component\Process\Process;
 
 class SiteProvisioner
 {
-    public function provision(User $user, string $siteSlug): array
+    public function provision(User $user, string $siteSlug, string $repositoryUrl, string $repositoryBranch): array
     {
         $linuxUsername = $user->linux_username;
 
@@ -29,28 +30,30 @@ class SiteProvisioner
         $sitesRoot = $this->joinPath($userRoot, 'sites');
         $siteRoot = $this->joinPath($sitesRoot, $siteSlug);
 
-        $paths = [
-            $siteRoot,
-            $this->joinPath($siteRoot, 'public'),
-            $this->joinPath($siteRoot, 'storage'),
-            $this->joinPath($siteRoot, 'logs'),
-            $this->joinPath($siteRoot, 'backups'),
-        ];
+        $this->ensureDirectory($userRoot);
+        $this->ensureDirectory($sitesRoot);
 
-        foreach ($paths as $path) {
-            try {
-                File::ensureDirectoryExists($path, 0775, true);
-            } catch (\Throwable $exception) {
-                throw new RuntimeException(
-                    "BerryPanel cannot create the site folder at {$path}. Check BERRYPANEL_USERS_ROOT permissions.",
-                    previous: $exception,
-                );
-            }
+        if (File::exists($siteRoot) && count(File::files($siteRoot)) + count(File::directories($siteRoot)) > 0) {
+            throw new RuntimeException("BerryPanel cannot deploy {$siteSlug} because the site folder already exists and is not empty.");
+        }
+
+        $deployed = false;
+
+        if ((bool) config('berrypanel.git_deploy_enabled')) {
+            $this->cloneRepository($repositoryUrl, $repositoryBranch, $siteRoot);
+            $deployed = true;
+        } else {
+            $this->ensureDirectory($siteRoot);
+        }
+
+        foreach (['public', 'storage', 'logs', 'backups'] as $directory) {
+            $this->ensureDirectory($this->joinPath($siteRoot, $directory));
         }
 
         return [
             'root_path' => $siteRoot,
             'public_path' => $this->joinPath($siteRoot, 'public'),
+            'deployed' => $deployed,
         ];
     }
 
@@ -100,6 +103,47 @@ class SiteProvisioner
     private function joinPath(string $left, string $right): string
     {
         return rtrim($left, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.ltrim($right, DIRECTORY_SEPARATOR);
+    }
+
+    private function ensureDirectory(string $path): void
+    {
+        try {
+            File::ensureDirectoryExists($path, 0775, true);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(
+                "BerryPanel cannot create the site folder at {$path}. Check BERRYPANEL_USERS_ROOT permissions.",
+                previous: $exception,
+            );
+        }
+    }
+
+    private function cloneRepository(string $repositoryUrl, string $repositoryBranch, string $siteRoot): void
+    {
+        $process = new Process([
+            'git',
+            'clone',
+            '--depth=1',
+            '--branch',
+            $repositoryBranch,
+            $repositoryUrl,
+            $siteRoot,
+        ]);
+
+        $process->setTimeout(180);
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            if (File::isDirectory($siteRoot)) {
+                File::deleteDirectory($siteRoot);
+            }
+
+            $error = trim($process->getErrorOutput()) ?: trim($process->getOutput());
+
+            throw new RuntimeException(
+                'BerryPanel could not clone the GitHub repository. Check that the repo is public and the branch exists.'
+                .($error !== '' ? " Git said: {$error}" : ''),
+            );
+        }
     }
 
     private function ensureRootIsWritable(string $usersRoot): void
