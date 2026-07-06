@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, storeAuthToken } from "@/lib/api";
 import Link from "next/link";
+
+type AuthResponse = {
+  token?: string;
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,7 +26,7 @@ export default function RegisterPage() {
     const form = new FormData(e.currentTarget);
 
     try {
-      await api("/api/register", {
+      const response = await api<AuthResponse>("/api/register", {
         method: "POST",
         body: JSON.stringify({
           name: form.get("name"),
@@ -31,6 +35,7 @@ export default function RegisterPage() {
           password_confirmation: form.get("password_confirmation"),
         }),
       });
+      storeAuthToken(response.token);
 
       router.push("/dashboard");
     } catch (err: unknown) {

@@ -17,7 +17,10 @@ class LoginResponse implements LoginResponseContract
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         return response()
-            ->json(['user' => $user->only('id', 'name', 'email')])
+            ->json([
+                'user' => $user->only('id', 'name', 'email', 'linux_username'),
+                'token' => $token,
+            ])
             ->cookie(
                 'auth_token',
                 $token,

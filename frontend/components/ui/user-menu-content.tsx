@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, clearAuthToken } from "@/lib/api";
 
 import {
   DropdownMenuGroup,
@@ -29,6 +29,7 @@ export function UserMenuContent({ user }: Props) {
     await api("/api/logout", {
       method: "POST",
     });
+    clearAuthToken();
 
     router.push("/login");
   };

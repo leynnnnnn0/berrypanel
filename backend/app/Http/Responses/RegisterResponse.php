@@ -14,7 +14,10 @@ class RegisterResponse implements RegisterResponseContract
         $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
 
         return response()
-            ->json(['user' => $user->only('id', 'name', 'email')], 201)
+            ->json([
+                'user' => $user->only('id', 'name', 'email', 'linux_username'),
+                'token' => $token,
+            ], 201)
             ->cookie(
                 'auth_token',
                 $token,

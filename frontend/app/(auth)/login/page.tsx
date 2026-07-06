@@ -2,7 +2,7 @@
 
 import { Suspense, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, storeAuthToken } from "@/lib/api";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
+
+type AuthResponse = {
+  token?: string;
+};
 
 function LoginPageContent() {
   const router = useRouter();
@@ -27,7 +31,7 @@ function LoginPageContent() {
     const form = new FormData(e.currentTarget);
 
     try {
-      await api("/api/login", {
+      const response = await api<AuthResponse>("/api/login", {
         method: "POST",
         body: JSON.stringify({
           email: form.get("email"),
@@ -35,6 +39,7 @@ function LoginPageContent() {
           remember: form.get("remember") == null ? false : true,
         }),
       });
+      storeAuthToken(response.token);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
