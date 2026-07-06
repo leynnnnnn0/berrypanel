@@ -60,6 +60,20 @@ type CreateSiteResponse = {
   site: Site;
 };
 
+type UsageResponse = {
+  usage: {
+    total_bytes: number;
+    quota_bytes: number;
+    percent: number;
+    breakdown: {
+      application: number;
+      uploads: number;
+      backups: number;
+      logs: number;
+    };
+  };
+};
+
 const activities = [
   "default deployed successfully",
   "database default_db migrated",
@@ -120,6 +134,20 @@ function siteStatusLabel(status: string): string {
   }
 
   return status;
+}
+
+function formatBytesAsGb(bytes: number) {
+  const gb = bytes / 1024 / 1024 / 1024;
+
+  if (gb === 0) {
+    return "0GB";
+  }
+
+  if (gb < 0.1) {
+    return `${gb.toFixed(2)}GB`;
+  }
+
+  return `${gb.toFixed(1)}GB`;
 }
 
 function SectionTitle({
@@ -196,7 +224,9 @@ function ActionCard({
 export default function DashboardPage() {
   const router = useRouter();
   const [sites, setSites] = useState<Site[]>([]);
+  const [usage, setUsage] = useState<UsageResponse["usage"] | null>(null);
   const [loadingSites, setLoadingSites] = useState(true);
+  const [loadingUsage, setLoadingUsage] = useState(true);
   const [creatingSite, setCreatingSite] = useState(false);
   const [siteDialogOpen, setSiteDialogOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
@@ -220,6 +250,19 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadUsage() {
+    setLoadingUsage(true);
+
+    try {
+      const response = await api<UsageResponse>("/api/usage");
+      setUsage(response.usage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load usage");
+    } finally {
+      setLoadingUsage(false);
+    }
+  }
+
   async function createLaravelSite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreatingSite(true);
@@ -239,6 +282,7 @@ export default function DashboardPage() {
       });
 
       setSites((current) => [response.site, ...current]);
+      void loadUsage();
       setSiteName("");
       setRepositoryUrl("");
       setRepositoryBranch("main");
@@ -266,7 +310,34 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadSites();
+    loadUsage();
   }, []);
+
+  const storageUsed = usage ? formatBytesAsGb(usage.total_bytes) : loadingUsage ? "..." : "0GB";
+  const storageQuota = usage ? formatBytesAsGb(usage.quota_bytes) : "25GB";
+  const storagePercent = usage ? usage.percent : 0;
+  const storageBreakdown = [
+    {
+      label: "Application files",
+      value: usage ? formatBytesAsGb(usage.breakdown.application) : loadingUsage ? "..." : "0GB",
+      icon: Folder,
+    },
+    {
+      label: "Uploads",
+      value: usage ? formatBytesAsGb(usage.breakdown.uploads) : loadingUsage ? "..." : "0GB",
+      icon: CloudUpload,
+    },
+    {
+      label: "Backups",
+      value: usage ? formatBytesAsGb(usage.breakdown.backups) : loadingUsage ? "..." : "0GB",
+      icon: HardDrive,
+    },
+    {
+      label: "Logs",
+      value: usage ? formatBytesAsGb(usage.breakdown.logs) : loadingUsage ? "..." : "0GB",
+      icon: Terminal,
+    },
+  ];
 
   const visibleSites = sites.map((site, index) => ({
     name: site.name,
@@ -286,10 +357,10 @@ export default function DashboardPage() {
         detail: sites.length === 1 ? "site" : "sites",
       },
       { label: "Deployments", value: "0", detail: "coming soon" },
-      { label: "Storage", value: "0GB", detail: "tracked soon" },
+      { label: "Storage", value: storageUsed, detail: `of ${storageQuota}` },
       { label: "Databases", value: "0", detail: "coming soon" },
     ],
-    [loadingSites, sites.length],
+    [loadingSites, sites.length, storageQuota, storageUsed],
   );
 
   return (
@@ -346,12 +417,15 @@ export default function DashboardPage() {
                   <ServerCog className="size-6" />
                 </div>
                 <div>
-                  <p className="text-5xl font-semibold">18.4GB</p>
+                  <p className="text-5xl font-semibold">{storageUsed}</p>
                   <p className="mt-2 text-sm text-[#4f4960]">
-                    of 50GB storage used
+                    of {storageQuota} storage used
                   </p>
                   <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/70">
-                    <div className="h-full w-[37%] rounded-full bg-black" />
+                    <div
+                      className="h-full rounded-full bg-black transition-all"
+                      style={{ width: `${Math.min(100, storagePercent)}%` }}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
@@ -504,11 +578,7 @@ export default function DashboardPage() {
           <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <SectionTitle eyebrow="Files" title="Storage Breakdown" />
             <div className="mt-6 space-y-4">
-              {[
-                { label: "Application files", value: "8.2GB", icon: Folder },
-                { label: "Uploads", value: "6.8GB", icon: CloudUpload },
-                { label: "Backups", value: "3.4GB", icon: HardDrive },
-              ].map((item) => (
+              {storageBreakdown.map((item) => (
                 <div
                   key={item.label}
                   className="flex items-center justify-between rounded-2xl bg-[#f7f7f7] p-4"

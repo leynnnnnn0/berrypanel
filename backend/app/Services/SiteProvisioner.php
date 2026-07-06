@@ -200,7 +200,7 @@ class SiteProvisioner
         $this->runCommand(['php', 'artisan', 'storage:link'], $siteRoot, 'Laravel storage link failed', allowFailure: true);
 
         if (File::exists($this->joinPath($siteRoot, 'package.json'))) {
-            $this->runCommand(['npm', 'install'], $siteRoot, 'Node dependency install failed');
+            $this->runCommand(['npm', 'install', '--include=dev', '--no-audit', '--no-fund'], $siteRoot, 'Node dependency install failed');
             $this->runCommand(['npm', 'run', 'build'], $siteRoot, 'Frontend build failed');
         }
 

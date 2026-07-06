@@ -5,6 +5,7 @@ return [
     'server_ip' => env('BERRYPANEL_SERVER_IP'),
     'site_domain_suffix' => env('BERRYPANEL_SITE_DOMAIN_SUFFIX'),
     'git_deploy_enabled' => (bool) env('BERRYPANEL_GIT_DEPLOY_ENABLED', false),
+    'storage_quota_gb' => (int) env('BERRYPANEL_STORAGE_QUOTA_GB', 25),
     'nginx_provisioning_enabled' => (bool) env('BERRYPANEL_NGINX_PROVISIONING_ENABLED', false),
     'nginx_sites_available_path' => env('BERRYPANEL_NGINX_SITES_AVAILABLE_PATH', '/etc/nginx/sites-available'),
     'nginx_sites_enabled_path' => env('BERRYPANEL_NGINX_SITES_ENABLED_PATH', '/etc/nginx/sites-enabled'),

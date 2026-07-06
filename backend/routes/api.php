@@ -9,6 +9,7 @@ use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use App\Http\Controllers\HostingDatabaseController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SshAccessController;
+use App\Http\Controllers\UsageController;
 
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware('throttle:6,1');
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn(Request $request) => response()->json(
         $request->user()->only('id', 'name', 'email', 'linux_username')
     ));
+    Route::get('/usage', [UsageController::class, 'show']);
     Route::get('/sites', [SiteController::class, 'index']);
     Route::post('/sites', [SiteController::class, 'store']);
     Route::get('/sites/{site}', [SiteController::class, 'show']);
