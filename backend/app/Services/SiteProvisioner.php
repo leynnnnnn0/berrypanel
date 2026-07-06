@@ -178,6 +178,10 @@ class SiteProvisioner
             File::copy($this->joinPath($siteRoot, '.env.example'), $this->joinPath($siteRoot, '.env'));
         }
 
+        if (File::exists($this->joinPath($siteRoot, '.env'))) {
+            $this->applyStarterRuntimeDefaults($siteRoot);
+        }
+
         if (File::exists($this->joinPath($siteRoot, 'composer.json'))) {
             $this->runCommand([
                 'composer',
@@ -206,14 +210,46 @@ class SiteProvisioner
         ])->filter(fn (string $path) => File::exists($path))->values()->all();
 
         if ($permissionPaths !== []) {
-            $this->runCommand(['chmod', '-R', 'ug+rw', ...$permissionPaths], $siteRoot, 'Laravel write permission update failed', allowFailure: true);
+            $this->runCommand(['chmod', '-R', 'ug+rwX', ...$permissionPaths], $siteRoot, 'Laravel write permission update failed', allowFailure: true);
         }
+    }
+
+    private function applyStarterRuntimeDefaults(string $siteRoot): void
+    {
+        $envPath = $this->joinPath($siteRoot, '.env');
+        $content = (string) File::get($envPath);
+
+        foreach ([
+            'SESSION_DRIVER' => 'file',
+            'CACHE_STORE' => 'file',
+            'QUEUE_CONNECTION' => 'sync',
+        ] as $key => $value) {
+            if (preg_match("/^{$key}=.*$/m", $content) === 1) {
+                $content = preg_replace("/^{$key}=.*$/m", "{$key}={$value}", $content) ?? $content;
+            } else {
+                $content = rtrim($content).PHP_EOL."{$key}={$value}".PHP_EOL;
+            }
+        }
+
+        File::put($envPath, $content);
     }
 
     private function runCommand(array $command, string $workingDirectory, string $failureMessage, bool $allowFailure = false): void
     {
+        $toolHome = storage_path('app/berrypanel/tool-home');
+        $composerHome = $this->joinPath($toolHome, 'composer');
+        $composerCache = $this->joinPath($composerHome, 'cache');
+        $npmCache = $this->joinPath($toolHome, 'npm');
+
+        File::ensureDirectoryExists($composerCache, 0775, true);
+        File::ensureDirectoryExists($npmCache, 0775, true);
+
         $process = new Process($command, $workingDirectory, [
             'COMPOSER_ALLOW_SUPERUSER' => '1',
+            'COMPOSER_HOME' => $composerHome,
+            'COMPOSER_CACHE_DIR' => $composerCache,
+            'HOME' => $toolHome,
+            'npm_config_cache' => $npmCache,
         ]);
 
         $process->setTimeout(900);

@@ -247,7 +247,6 @@ export default function DashboardPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to create site";
       setCreateError(message);
-      setError(message);
     } finally {
       setCreatingSite(false);
     }
@@ -322,8 +321,8 @@ export default function DashboardPage() {
                 </Button>
               </div>
 
-              {error && (
-                <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error && !siteDialogOpen && (
+                <p className="break-words rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 [overflow-wrap:anywhere]">
                   {error}
                 </p>
               )}
@@ -559,15 +558,18 @@ export default function DashboardPage() {
           }
         }}
       >
-        <DialogContent className="max-w-xl border-0 p-0">
-          <form onSubmit={createLaravelSite}>
-            <div className="overflow-hidden rounded-3xl bg-white">
-              <div className="bg-[#d8cef2] p-6">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-3xl overflow-hidden border-0 p-0 sm:max-h-[calc(100dvh-2rem)]">
+          <form
+            onSubmit={createLaravelSite}
+            className="flex max-h-[calc(100dvh-1rem)] min-h-0 flex-col sm:max-h-[calc(100dvh-2rem)]"
+          >
+            <div className="flex min-h-0 flex-col overflow-hidden rounded-3xl bg-white">
+              <div className="shrink-0 bg-[#d8cef2] p-5 sm:p-6">
                 <DialogHeader className="pr-10">
                   <span className="w-fit rounded-full bg-white/75 px-4 py-2 text-sm font-medium text-[#151515]">
                     Laravel Provisioning
                   </span>
-                  <DialogTitle className="mt-5 text-4xl leading-none">
+                  <DialogTitle className="mt-5 text-4xl leading-none sm:text-5xl">
                     New Laravel Site
                   </DialogTitle>
                   <DialogDescription className="max-w-md text-[#4f4960]">
@@ -577,7 +579,7 @@ export default function DashboardPage() {
                 </DialogHeader>
               </div>
 
-              <div className="space-y-5 p-6">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
                 {creatingSite && (
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
@@ -651,7 +653,7 @@ export default function DashboardPage() {
                 )}
 
                 {createError && (
-                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-600">
+                  <p className="max-h-40 overflow-y-auto break-words rounded-2xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-600 [overflow-wrap:anywhere]">
                     {createError}
                   </p>
                 )}
