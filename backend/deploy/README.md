@@ -7,6 +7,7 @@ This is the backend checklist for testing the current BerryPanel MVP on your Pi.
 - User registration and login.
 - Laravel site folder creation under `/srv/berrypanel/users/{linux_username}/sites/{site}`.
 - Public GitHub repository clone into the site folder when Git deploy is enabled.
+- Composer install, Laravel app key generation, storage link, npm install, and frontend build for Laravel/Inertia apps.
 - BerryPanel-generated site hostnames like `site-name.192.168.254.113.nip.io`.
 - Per-site `.env` writing.
 - Database record creation.
@@ -24,7 +25,7 @@ Install the runtime packages first:
 
 ```bash
 sudo apt update
-sudo apt install -y nginx mariadb-server php8.4-fpm php8.4-cli php8.4-mbstring php8.4-xml php8.4-curl php8.4-sqlite3 php8.4-mysql php8.4-zip php8.4-bcmath unzip git
+sudo apt install -y nginx mariadb-server php8.4-fpm php8.4-cli php8.4-mbstring php8.4-xml php8.4-curl php8.4-sqlite3 php8.4-mysql php8.4-zip php8.4-bcmath unzip git composer nodejs npm
 ```
 
 If your Pi only has PHP 8.3 available, use the matching `php8.3-*` packages and set hosted sites to PHP 8.3 for now.

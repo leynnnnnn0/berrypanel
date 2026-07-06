@@ -92,12 +92,13 @@ class SiteController extends Controller
             'slug' => $slug,
             'stack' => 'Laravel / Inertia',
             'php_version' => $validated['php_version'] ?? '8.4',
-            'status' => $paths['deployed'] ? 'deployed' : 'provisioned',
+            'status' => $paths['deployed'] ? 'needs_configuration' : 'provisioned',
             'root_path' => $paths['root_path'],
             'public_path' => $paths['public_path'],
             'local_url' => $this->siteHost($slug),
             'repository_url' => $validated['repository_url'],
             'repository_branch' => $branch,
+            'env_variables' => $paths['env_variables'] ?? null,
         ]);
 
         return response()->json(['site' => $this->serialize($site)], 201);
@@ -188,7 +189,7 @@ class SiteController extends Controller
         ];
 
         if ($includeEnvironment) {
-            $payload['env_variables'] = $site->env_variables ?: $this->defaultEnvironment($site);
+            $payload['env_variables'] = array_replace($this->defaultEnvironment($site), $site->env_variables ?: []);
         }
 
         return $payload;

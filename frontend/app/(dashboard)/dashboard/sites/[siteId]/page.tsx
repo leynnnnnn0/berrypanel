@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Copy,
+  Database,
   ExternalLink,
   FileKey2,
   GitBranch,
@@ -95,13 +96,19 @@ function StatusPill({ status }: { status: string }) {
   const tone =
     normalized === "online" || normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : normalized === "deploying"
+      : normalized === "deploying" || normalized === "needs_configuration"
         ? "bg-[#fff0b8] text-[#5c4b10]"
         : "bg-[#f4f4f4] text-[#555]";
+  const label =
+    normalized === "provisioned"
+      ? "Provisioned"
+      : normalized === "needs_configuration"
+        ? "Needs configuration"
+        : status;
 
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
-      {status === "provisioned" ? "Provisioned" : status}
+      {label}
     </span>
   );
 }
@@ -340,6 +347,42 @@ export default function SiteShowPage() {
             {error || success}
           </div>
         )}
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl bg-[#fff0b8] p-6 shadow-sm">
+            <span className="grid size-10 place-items-center rounded-full bg-white/80">
+              <Database className="size-5" />
+            </span>
+            <h2 className="mt-4 text-xl font-semibold">1. Create database</h2>
+            <p className="mt-2 text-sm leading-6 text-[#66551c]">
+              Create a MySQL database for this site, then copy the database
+              name, username, and password.
+            </p>
+            <Button asChild className="mt-5 rounded-full bg-black text-white">
+              <Link href="/dashboard/databases">Open databases</Link>
+            </Button>
+          </div>
+          <div className="rounded-3xl bg-white p-6 shadow-sm">
+            <span className="grid size-10 place-items-center rounded-full bg-[#d8cef2]">
+              <FileKey2 className="size-5" />
+            </span>
+            <h2 className="mt-4 text-xl font-semibold">2. Configure .env</h2>
+            <p className="mt-2 text-sm leading-6 text-[#666]">
+              Paste app and database credentials below. BerryPanel writes them
+              to this site&apos;s `.env` file on the Pi.
+            </p>
+          </div>
+          <div className="rounded-3xl bg-white p-6 shadow-sm">
+            <span className="grid size-10 place-items-center rounded-full bg-[#dff8c8]">
+              <CheckCircle2 className="size-5" />
+            </span>
+            <h2 className="mt-4 text-xl font-semibold">3. Finish runtime</h2>
+            <p className="mt-2 text-sm leading-6 text-[#666]">
+              After saving `.env`, the app has Composer dependencies, frontend
+              assets, storage link, and app key prepared.
+            </p>
+          </div>
+        </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">

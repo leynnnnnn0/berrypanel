@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Site = {
@@ -80,8 +81,16 @@ const deploySteps = [
     body: "Ensuring public, storage, logs, and backup paths exist.",
   },
   {
-    label: "Saving site",
-    body: "Registering the site in your BerryPanel dashboard.",
+    label: "Installing PHP dependencies",
+    body: "Running Composer install for the Laravel runtime.",
+  },
+  {
+    label: "Building frontend assets",
+    body: "Installing npm packages and compiling the Inertia build.",
+  },
+  {
+    label: "Preparing next steps",
+    body: "Opening the site page so you can configure .env and database credentials.",
   },
 ];
 
@@ -90,7 +99,7 @@ function StatusPill({ children }: { children: string }) {
   const tone =
     normalized === "online" || normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : normalized === "deploying"
+      : normalized === "deploying" || normalized === "needs configuration"
         ? "bg-[#fff0b8] text-[#5c4b10]"
         : "bg-[#f4f4f4] text-[#555]";
 
@@ -99,6 +108,18 @@ function StatusPill({ children }: { children: string }) {
       {children}
     </span>
   );
+}
+
+function siteStatusLabel(status: string): string {
+  if (status === "provisioned") {
+    return "Provisioned";
+  }
+
+  if (status === "needs_configuration") {
+    return "Needs configuration";
+  }
+
+  return status;
 }
 
 function SectionTitle({
@@ -173,6 +194,7 @@ function ActionCard({
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [sites, setSites] = useState<Site[]>([]);
   const [loadingSites, setLoadingSites] = useState(true);
   const [creatingSite, setCreatingSite] = useState(false);
@@ -221,6 +243,7 @@ export default function DashboardPage() {
       setRepositoryUrl("");
       setRepositoryBranch("main");
       setSiteDialogOpen(false);
+      router.push(`/dashboard/sites/${response.site.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to create site";
       setCreateError(message);
@@ -251,7 +274,7 @@ export default function DashboardPage() {
     stack: `${site.stack} / PHP ${site.php_version}`,
     domain: site.local_url ?? "Pending local domain",
     repositoryUrl: site.repository_url,
-    status: site.status === "provisioned" ? "Provisioned" : site.status,
+    status: siteStatusLabel(site.status),
     branch: site.repository_branch ? site.repository_branch : "main",
     accent: index % 2 === 0 ? "bg-[#d8cef2]" : "bg-[#fff0b8]",
   }));
@@ -580,7 +603,7 @@ export default function DashboardPage() {
                         className="h-full bg-[#d8cef2]"
                         initial={{ width: "15%" }}
                         animate={{
-                          width: `${Math.max(25, ((deployStep + 1) / deploySteps.length) * 100)}%`,
+                          width: `${Math.min(92, Math.max(25, ((deployStep + 1) / deploySteps.length) * 100))}%`,
                         }}
                         transition={{ duration: 0.35 }}
                       />
@@ -704,6 +727,12 @@ export default function DashboardPage() {
                     <p className="font-medium text-[#151515]">Folders</p>
                     <p>public, storage, logs</p>
                   </div>
+                </div>
+
+                <div className="rounded-2xl border border-black/5 bg-[#fffaf0] p-4 text-sm leading-6 text-[#67551b]">
+                  After deploy, BerryPanel opens the site page so you can create
+                  or select a database, paste credentials into `.env`, and save
+                  the Laravel runtime settings.
                 </div>
 
                 <DialogFooter>
