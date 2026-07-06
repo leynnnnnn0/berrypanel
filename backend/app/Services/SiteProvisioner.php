@@ -38,12 +38,13 @@ class SiteProvisioner
         }
 
         $deployed = false;
+        $deploymentWarnings = [];
         $environmentVariables = null;
 
         if ((bool) config('berrypanel.git_deploy_enabled')) {
             try {
                 $this->cloneRepository($repositoryUrl, $repositoryBranch, $siteRoot);
-                $this->prepareLaravelApplication($siteRoot);
+                $deploymentWarnings = $this->prepareLaravelApplication($siteRoot);
                 $environmentVariables = $this->readEnvironmentFile($siteRoot);
             } catch (\Throwable $exception) {
                 if (File::isDirectory($siteRoot)) {
@@ -66,6 +67,7 @@ class SiteProvisioner
             'root_path' => $siteRoot,
             'public_path' => $this->joinPath($siteRoot, 'public'),
             'deployed' => $deployed,
+            'deployment_warnings' => $deploymentWarnings,
             'env_variables' => $environmentVariables,
         ];
     }
@@ -168,8 +170,10 @@ class SiteProvisioner
         }
     }
 
-    private function prepareLaravelApplication(string $siteRoot): void
+    private function prepareLaravelApplication(string $siteRoot): array
     {
+        $warnings = [];
+
         if (! File::exists($this->joinPath($siteRoot, 'artisan'))) {
             throw new RuntimeException('BerryPanel cloned the repository, but it does not look like a Laravel app because artisan was not found.');
         }
@@ -197,11 +201,24 @@ class SiteProvisioner
             $this->runCommand(['php', 'artisan', 'key:generate', '--force'], $siteRoot, 'Laravel app key generation failed');
         }
 
-        $this->runCommand(['php', 'artisan', 'storage:link'], $siteRoot, 'Laravel storage link failed', allowFailure: true);
+        $storageLinkWarning = $this->runCommand(['php', 'artisan', 'storage:link'], $siteRoot, 'Laravel storage link failed', allowFailure: true);
+
+        if ($storageLinkWarning !== null) {
+            $warnings[] = $storageLinkWarning;
+        }
 
         if (File::exists($this->joinPath($siteRoot, 'package.json'))) {
-            $this->runCommand(['npm', 'install', '--include=dev', '--no-audit', '--no-fund'], $siteRoot, 'Node dependency install failed');
-            $this->runCommand(['npm', 'run', 'build'], $siteRoot, 'Frontend build failed');
+            $npmInstallWarning = $this->runCommand(['npm', 'install', '--include=dev', '--no-audit', '--no-fund'], $siteRoot, 'Node dependency install failed', allowFailure: true);
+
+            if ($npmInstallWarning !== null) {
+                $warnings[] = $npmInstallWarning;
+            } else {
+                $frontendBuildWarning = $this->runCommand(['npm', 'run', 'build'], $siteRoot, 'Frontend build failed', allowFailure: true);
+
+                if ($frontendBuildWarning !== null) {
+                    $warnings[] = $frontendBuildWarning;
+                }
+            }
         }
 
         $permissionPaths = collect([
@@ -210,8 +227,14 @@ class SiteProvisioner
         ])->filter(fn (string $path) => File::exists($path))->values()->all();
 
         if ($permissionPaths !== []) {
-            $this->runCommand(['chmod', '-R', 'ug+rwX', ...$permissionPaths], $siteRoot, 'Laravel write permission update failed', allowFailure: true);
+            $permissionWarning = $this->runCommand(['chmod', '-R', 'ug+rwX', ...$permissionPaths], $siteRoot, 'Laravel write permission update failed', allowFailure: true);
+
+            if ($permissionWarning !== null) {
+                $warnings[] = $permissionWarning;
+            }
         }
+
+        return $warnings;
     }
 
     private function applyStarterRuntimeDefaults(string $siteRoot): void
@@ -234,7 +257,7 @@ class SiteProvisioner
         File::put($envPath, $content);
     }
 
-    private function runCommand(array $command, string $workingDirectory, string $failureMessage, bool $allowFailure = false): void
+    private function runCommand(array $command, string $workingDirectory, string $failureMessage, bool $allowFailure = false): ?string
     {
         $toolHome = storage_path('app/berrypanel/tool-home');
         $composerHome = $this->joinPath($toolHome, 'composer');
@@ -255,14 +278,21 @@ class SiteProvisioner
         $process->setTimeout(900);
         $process->run();
 
-        if (! $process->isSuccessful() && ! $allowFailure) {
+        if (! $process->isSuccessful()) {
             $error = trim($process->getErrorOutput()) ?: trim($process->getOutput());
+
+            if ($allowFailure) {
+                return $failureMessage.'.'
+                    .($error !== '' ? " Command output: {$error}" : '');
+            }
 
             throw new RuntimeException(
                 $failureMessage.'.'
                 .($error !== '' ? " Command output: {$error}" : ''),
             );
         }
+
+        return null;
     }
 
     private function readEnvironmentFile(string $siteRoot): ?array

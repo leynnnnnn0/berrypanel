@@ -108,6 +108,7 @@ class SiteController extends Controller
             'repository_url' => $validated['repository_url'],
             'repository_branch' => $branch,
             'env_variables' => $paths['env_variables'] ?? null,
+            'deployment_warnings' => $paths['deployment_warnings'] ?? [],
         ]);
 
         return response()->json(['site' => $this->serialize($site)], 201);
@@ -195,6 +196,7 @@ class SiteController extends Controller
             'local_url' => $site->local_url,
             'repository_url' => $site->repository_url,
             'repository_branch' => $site->repository_branch,
+            'deployment_warnings' => $site->deployment_warnings ?: [],
             'created_at' => $site->created_at?->toISOString(),
         ];
 

@@ -45,6 +45,7 @@ type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  deployment_warnings: string[];
   created_at: string | null;
 };
 
@@ -57,13 +58,19 @@ function StatusPill({ status }: { status: string }) {
   const tone =
     normalized === "online" || normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : normalized === "deploying"
+      : normalized === "deploying" || normalized === "needs_configuration"
         ? "bg-[#fff0b8] text-[#5c4b10]"
         : "bg-[#f4f4f4] text-[#555]";
+  const label =
+    status === "provisioned"
+      ? "Provisioned"
+      : status === "needs_configuration"
+        ? "Needs configuration"
+        : status;
 
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
-      {status === "provisioned" ? "Provisioned" : status}
+      {label}
     </span>
   );
 }

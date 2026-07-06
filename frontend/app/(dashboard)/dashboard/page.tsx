@@ -49,6 +49,7 @@ type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  deployment_warnings: string[];
   created_at: string | null;
 };
 

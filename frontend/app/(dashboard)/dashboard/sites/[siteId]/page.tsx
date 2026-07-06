@@ -35,6 +35,7 @@ type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  deployment_warnings: string[];
   created_at: string | null;
   env_variables: EnvVariables;
 };
@@ -346,6 +347,28 @@ export default function SiteShowPage() {
           >
             {error || success}
           </div>
+        )}
+
+        {site.deployment_warnings.length > 0 && (
+          <section className="rounded-3xl border border-[#f4df9a] bg-[#fffaf0] p-5 text-[#6b5516] shadow-sm lg:p-6">
+            <h2 className="text-lg font-semibold text-[#171717]">
+              Deploy needs attention
+            </h2>
+            <p className="mt-2 text-sm leading-6">
+              The site folder was created and the repository was cloned, but one
+              deploy step needs to be finished from SSH.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {site.deployment_warnings.map((warning) => (
+                <p
+                  key={warning}
+                  className="max-h-32 overflow-y-auto break-words rounded-2xl bg-white/75 px-4 py-3 text-sm leading-5 [overflow-wrap:anywhere]"
+                >
+                  {warning}
+                </p>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="grid gap-4 md:grid-cols-3">

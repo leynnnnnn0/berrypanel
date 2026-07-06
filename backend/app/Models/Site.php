@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'repository_url',
     'repository_branch',
     'env_variables',
+    'deployment_warnings',
 ])]
 class Site extends Model
 {
@@ -27,6 +28,7 @@ class Site extends Model
     {
         return [
             'env_variables' => 'encrypted:array',
+            'deployment_warnings' => 'array',
         ];
     }
 
