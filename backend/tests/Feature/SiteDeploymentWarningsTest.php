@@ -3,6 +3,7 @@
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
 
@@ -57,4 +58,46 @@ test('a user cannot clear another users site deployment warnings', function () {
         ->assertNotFound();
 
     expect($site->refresh()->deployment_warnings)->toBe(['Frontend build failed.']);
+});
+
+test('clearing warnings marks a configured site as provisioned', function () {
+    $usersRoot = storage_path('framework/testing/berrypanel-warning-clear-users');
+    $siteRoot = "{$usersRoot}/user_1/sites/badshot";
+    File::deleteDirectory($usersRoot);
+    File::ensureDirectoryExists($siteRoot, 0775, true);
+    File::put("{$siteRoot}/.env", implode(PHP_EOL, [
+        'APP_NAME=Badshot',
+        'APP_KEY=base64:validKey',
+        'APP_URL=http://badshot.192.168.254.113.nip.io',
+        'DB_DATABASE=badshot_db',
+        'DB_USERNAME=badshot_user',
+    ]).PHP_EOL);
+
+    config(['berrypanel.users_root' => $usersRoot]);
+
+    $user = User::factory()->create(['linux_username' => 'user_1']);
+    $site = Site::create([
+        'user_id' => $user->id,
+        'name' => 'Badshot',
+        'slug' => 'badshot',
+        'stack' => 'Laravel / Inertia',
+        'php_version' => '8.4',
+        'status' => 'needs_configuration',
+        'root_path' => $siteRoot,
+        'public_path' => "{$siteRoot}/public",
+        'local_url' => 'badshot.192.168.254.113.nip.io',
+        'repository_url' => 'https://github.com/example/badshot',
+        'repository_branch' => 'main',
+        'deployment_warnings' => ['Frontend build failed. Command output: sh: 1: vite: not found'],
+    ]);
+
+    $response = $this->actingAs($user)->deleteJson("/api/sites/{$site->id}/deployment-warnings");
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('site.deployment_warnings', [])
+        ->assertJsonPath('site.status', 'provisioned')
+        ->assertJsonPath('site.env_variables.APP_KEY', 'base64:validKey');
+
+    expect($site->refresh()->status)->toBe('provisioned');
 });

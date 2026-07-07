@@ -303,7 +303,7 @@ class SiteProvisioner
         return null;
     }
 
-    private function readEnvironmentFile(string $siteRoot): ?array
+    public function readEnvironmentFile(string $siteRoot): ?array
     {
         $envPath = $this->joinPath($siteRoot, '.env');
 

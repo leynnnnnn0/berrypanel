@@ -101,7 +101,7 @@ class SiteController extends Controller
             'slug' => $slug,
             'stack' => 'Laravel / Inertia',
             'php_version' => $phpVersion,
-            'status' => $paths['deployed'] ? 'needs_configuration' : 'provisioned',
+            'status' => $this->statusForProvisionResult($paths),
             'root_path' => $paths['root_path'],
             'public_path' => $paths['public_path'],
             'local_url' => $localUrl,
@@ -114,11 +114,11 @@ class SiteController extends Controller
         return response()->json(['site' => $this->serialize($site)], 201);
     }
 
-    public function show(Request $request, Site $site): JsonResponse
+    public function show(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
     {
         $this->authorizeSite($request, $site);
 
-        return response()->json(['site' => $this->serialize($site, includeEnvironment: true)]);
+        return response()->json(['site' => $this->serialize($site, includeEnvironment: true, provisioner: $provisioner)]);
     }
 
     public function updateEnvironment(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
@@ -151,7 +151,7 @@ class SiteController extends Controller
             'variables.MAIL_FROM_NAME' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $variables = $this->defaultEnvironment($site);
+        $variables = $this->environmentForSite($site, $provisioner);
 
         foreach (self::ENV_KEYS as $key) {
             if ($request->has("variables.{$key}")) {
@@ -161,18 +161,27 @@ class SiteController extends Controller
 
         $provisioner->writeEnvironmentFile($site, $variables);
 
-        $site->forceFill(['env_variables' => $variables])->save();
+        $site->forceFill([
+            'env_variables' => $variables,
+            'status' => $this->statusForEnvironment($site, $variables),
+        ])->save();
 
-        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
+        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true, provisioner: $provisioner)]);
     }
 
-    public function clearDeploymentWarnings(Request $request, Site $site): JsonResponse
+    public function clearDeploymentWarnings(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
     {
         $this->authorizeSite($request, $site);
 
-        $site->forceFill(['deployment_warnings' => []])->save();
+        $variables = $this->environmentForSite($site, $provisioner);
 
-        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
+        $site->forceFill([
+            'deployment_warnings' => [],
+            'env_variables' => $variables,
+            'status' => $this->statusForEnvironment($site, $variables, []),
+        ])->save();
+
+        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true, provisioner: $provisioner)]);
     }
 
     public function destroy(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx, Site $site): JsonResponse
@@ -191,7 +200,7 @@ class SiteController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    private function serialize(Site $site, bool $includeEnvironment = false): array
+    private function serialize(Site $site, bool $includeEnvironment = false, ?SiteProvisioner $provisioner = null): array
     {
         $payload = [
             'id' => $site->id,
@@ -211,7 +220,7 @@ class SiteController extends Controller
         ];
 
         if ($includeEnvironment) {
-            $payload['env_variables'] = array_replace($this->defaultEnvironment($site), $site->env_variables ?: []);
+            $payload['env_variables'] = $this->environmentForSite($site, $provisioner);
         }
 
         return $payload;
@@ -250,6 +259,49 @@ class SiteController extends Controller
             'MAIL_FROM_ADDRESS' => '',
             'MAIL_FROM_NAME' => $site->name,
         ];
+    }
+
+    private function environmentForSite(Site $site, ?SiteProvisioner $provisioner = null): array
+    {
+        $fileVariables = null;
+
+        if ($provisioner !== null && is_string($site->root_path) && $site->root_path !== '') {
+            $fileVariables = $provisioner->readEnvironmentFile($site->root_path);
+        }
+
+        return array_replace(
+            $this->defaultEnvironment($site),
+            $site->env_variables ?: [],
+            $fileVariables ?: [],
+        );
+    }
+
+    private function statusForProvisionResult(array $paths): string
+    {
+        if (! ($paths['deployed'] ?? false)) {
+            return 'provisioned';
+        }
+
+        $variables = $paths['env_variables'] ?? [];
+
+        return $this->statusForEnvironment(
+            new Site(['deployment_warnings' => $paths['deployment_warnings'] ?? []]),
+            is_array($variables) ? $variables : [],
+        );
+    }
+
+    private function statusForEnvironment(Site $site, array $variables, ?array $deploymentWarnings = null): string
+    {
+        $hasRequiredRuntime = collect(['APP_KEY', 'APP_URL', 'DB_DATABASE', 'DB_USERNAME'])
+            ->every(fn (string $key) => isset($variables[$key]) && trim((string) $variables[$key]) !== '');
+
+        if (! $hasRequiredRuntime) {
+            return 'needs_configuration';
+        }
+
+        $warnings = $deploymentWarnings ?? ($site->deployment_warnings ?: []);
+
+        return $warnings === [] ? 'provisioned' : 'needs_configuration';
     }
 
     private function siteHost(string $slug): string
