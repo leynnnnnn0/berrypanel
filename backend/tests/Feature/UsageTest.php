@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Models\Site;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 
@@ -58,4 +58,47 @@ test('a user can view storage usage for their linux workspace', function () {
         ->assertJsonPath('usage.sites.0.bytes', 100)
         ->assertJsonPath('usage.sites.0.files', 4)
         ->assertJsonPath('usage.sites.0.exists', true);
+});
+
+test('storage usage follows owned site paths instead of linux username workspace', function () {
+    $usersRoot = storage_path('framework/testing/berrypanel-usage-mismatch');
+    File::deleteDirectory($usersRoot);
+
+    $staleWorkspace = "{$usersRoot}/nathan";
+    $siteRoot = "{$usersRoot}/user_1/sites/badshot";
+
+    File::ensureDirectoryExists($staleWorkspace, 0775, true);
+    File::ensureDirectoryExists("{$siteRoot}/public", 0775, true);
+
+    File::put("{$staleWorkspace}/wrong.txt", 'tiny');
+    File::put("{$siteRoot}/public/app.js", str_repeat('a', 460));
+
+    config([
+        'berrypanel.users_root' => $usersRoot,
+        'berrypanel.storage_quota_gb' => 25,
+    ]);
+
+    $user = User::factory()->create(['linux_username' => 'nathan']);
+    Site::create([
+        'user_id' => $user->id,
+        'name' => 'Badshot',
+        'slug' => 'badshot',
+        'stack' => 'Laravel / Inertia',
+        'php_version' => '8.4',
+        'status' => 'provisioned',
+        'root_path' => $siteRoot,
+        'public_path' => "{$siteRoot}/public",
+        'local_url' => 'badshot.berrypanel.local',
+        'repository_url' => 'https://github.com/example/badshot',
+        'repository_branch' => 'main',
+    ]);
+
+    $response = $this->actingAs($user)->getJson('/api/usage');
+
+    $response
+        ->assertOk()
+        ->assertJsonPath('usage.total_bytes', 460)
+        ->assertJsonPath('usage.file_count', 1)
+        ->assertJsonPath('usage.sites.0.name', 'Badshot')
+        ->assertJsonPath('usage.sites.0.bytes', 460);
 });

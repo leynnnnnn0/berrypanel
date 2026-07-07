@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use RuntimeException;
 use SplFileInfo;
 use UnexpectedValueException;
 
@@ -15,30 +14,13 @@ class UsageController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $linuxUsername = $request->user()->linux_username;
-
-        if (! is_string($linuxUsername) || $linuxUsername === '') {
-            throw new RuntimeException('This account does not have a Linux workspace yet.');
-        }
-
-        $usersRoot = (string) config('berrypanel.users_root');
-        $userRoot = $this->joinPath($usersRoot, $linuxUsername);
-        $sitesRoot = $this->joinPath($userRoot, 'sites');
-
         $quotaBytes = max(1, (int) config('berrypanel.storage_quota_gb', 25)) * 1024 * 1024 * 1024;
-        $userUsage = $this->inspectPath($userRoot);
-        $backupUsage = $this->inspectSiteDirectories($sitesRoot, ['backups']);
-        $uploadUsage = $this->inspectSiteDirectories($sitesRoot, ['storage/app/public']);
-        $logUsage = $this->inspectSiteDirectories($sitesRoot, ['logs', 'storage/logs']);
-        $totalBytes = $userUsage['bytes'];
-        $backupBytes = $backupUsage['bytes'];
-        $uploadBytes = $uploadUsage['bytes'];
-        $logBytes = $logUsage['bytes'];
-        $applicationBytes = max(0, $totalBytes - $backupBytes - $uploadBytes - $logBytes);
-        $sites = $request->user()
+        $siteModels = $request->user()
             ->sites()
             ->latest()
-            ->get()
+            ->get();
+
+        $sites = $siteModels
             ->map(function ($site): array {
                 $siteUsage = $this->inspectPath($site->root_path);
 
@@ -54,18 +36,29 @@ class UsageController extends Controller
             })
             ->values();
 
+        $totalBytes = $sites->sum('bytes');
+        $fileCount = $sites->sum('files');
+        $directoryCount = $sites->sum('directories');
+        $backupUsage = $this->inspectSiteDirectories($siteModels, ['backups']);
+        $uploadUsage = $this->inspectSiteDirectories($siteModels, ['storage/app/public']);
+        $logUsage = $this->inspectSiteDirectories($siteModels, ['logs', 'storage/logs']);
+        $backupBytes = $backupUsage['bytes'];
+        $uploadBytes = $uploadUsage['bytes'];
+        $logBytes = $logUsage['bytes'];
+        $applicationBytes = max(0, $totalBytes - $backupBytes - $uploadBytes - $logBytes);
+
         return response()->json([
             'usage' => [
                 'total_bytes' => $totalBytes,
                 'quota_bytes' => $quotaBytes,
                 'percent' => min(100, round(($totalBytes / $quotaBytes) * 100, 1)),
-                'file_count' => $userUsage['files'],
-                'directory_count' => $userUsage['directories'],
+                'file_count' => $fileCount,
+                'directory_count' => $directoryCount,
                 'breakdown' => [
                     'application' => [
                         'bytes' => $applicationBytes,
-                        'files' => max(0, $userUsage['files'] - $backupUsage['files'] - $uploadUsage['files'] - $logUsage['files']),
-                        'directories' => max(0, $userUsage['directories'] - $backupUsage['directories'] - $uploadUsage['directories'] - $logUsage['directories']),
+                        'files' => max(0, $fileCount - $backupUsage['files'] - $uploadUsage['files'] - $logUsage['files']),
+                        'directories' => max(0, $directoryCount - $backupUsage['directories'] - $uploadUsage['directories'] - $logUsage['directories']),
                     ],
                     'uploads' => $uploadUsage,
                     'backups' => $backupUsage,
@@ -79,17 +72,17 @@ class UsageController extends Controller
     /**
      * @return array{bytes: int, files: int, directories: int}
      */
-    private function inspectSiteDirectories(string $sitesRoot, array $relativePaths): array
+    private function inspectSiteDirectories(iterable $sites, array $relativePaths): array
     {
-        if (! File::isDirectory($sitesRoot)) {
-            return ['bytes' => 0, 'files' => 0, 'directories' => 0];
-        }
-
         $usage = ['bytes' => 0, 'files' => 0, 'directories' => 0];
 
-        foreach (File::directories($sitesRoot) as $siteRoot) {
+        foreach ($sites as $site) {
+            if (! is_string($site->root_path) || $site->root_path === '') {
+                continue;
+            }
+
             foreach ($relativePaths as $relativePath) {
-                $pathUsage = $this->inspectPath($this->joinPath($siteRoot, $relativePath));
+                $pathUsage = $this->inspectPath($this->joinPath($site->root_path, $relativePath));
                 $usage['bytes'] += $pathUsage['bytes'];
                 $usage['files'] += $pathUsage['files'];
                 $usage['directories'] += $pathUsage['directories'];
