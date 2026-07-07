@@ -184,6 +184,7 @@ export default function SiteShowPage() {
   const [variables, setVariables] = useState<EnvVariables>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearingWarnings, setClearingWarnings] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -242,6 +243,31 @@ export default function SiteShowPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function clearDeploymentWarnings() {
+    if (!site) {
+      return;
+    }
+
+    setClearingWarnings(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await api<SiteResponse>(
+        `/api/sites/${site.id}/deployment-warnings`,
+        { method: "DELETE" },
+      );
+
+      setSite(response.site);
+      setVariables(response.site.env_variables ?? {});
+      setSuccess("Deploy warning cleared.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to clear warning");
+    } finally {
+      setClearingWarnings(false);
     }
   }
 
@@ -351,13 +377,33 @@ export default function SiteShowPage() {
 
         {site.deployment_warnings.length > 0 && (
           <section className="rounded-3xl border border-[#f4df9a] bg-[#fffaf0] p-5 text-[#6b5516] shadow-sm lg:p-6">
-            <h2 className="text-lg font-semibold text-[#171717]">
-              Deploy needs attention
-            </h2>
-            <p className="mt-2 text-sm leading-6">
-              The site folder was created and the repository was cloned, but one
-              deploy step needs to be finished from SSH.
-            </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[#171717]">
+                  Deploy warning saved
+                </h2>
+                <p className="mt-2 text-sm leading-6">
+                  BerryPanel saved this from the last automatic deploy. If you
+                  already fixed it in SSH and the site works, clear the warning.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 shrink-0 rounded-full bg-white px-4"
+                disabled={clearingWarnings}
+                onClick={clearDeploymentWarnings}
+              >
+                {clearingWarnings ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Clearing...
+                  </>
+                ) : (
+                  "Clear warning"
+                )}
+              </Button>
+            </div>
             <div className="mt-4 grid gap-3">
               {site.deployment_warnings.map((warning) => (
                 <p

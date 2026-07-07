@@ -166,6 +166,15 @@ class SiteController extends Controller
         return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
     }
 
+    public function clearDeploymentWarnings(Request $request, Site $site): JsonResponse
+    {
+        $this->authorizeSite($request, $site);
+
+        $site->forceFill(['deployment_warnings' => []])->save();
+
+        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true)]);
+    }
+
     public function destroy(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx, Site $site): JsonResponse
     {
         $this->authorizeSite($request, $site);

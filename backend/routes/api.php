@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sites', [SiteController::class, 'store']);
     Route::get('/sites/{site}', [SiteController::class, 'show']);
     Route::put('/sites/{site}/env', [SiteController::class, 'updateEnvironment']);
+    Route::delete('/sites/{site}/deployment-warnings', [SiteController::class, 'clearDeploymentWarnings']);
     Route::delete('/sites/{site}', [SiteController::class, 'destroy']);
     Route::get('/databases', [HostingDatabaseController::class, 'index']);
     Route::post('/databases', [HostingDatabaseController::class, 'store']);
