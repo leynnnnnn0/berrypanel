@@ -3,12 +3,9 @@
 import {
   BookOpen,
   Database,
-  Folder,
   Globe2,
   KeyRound,
   LayoutGrid,
-  LifeBuoy,
-  Rocket,
 } from "lucide-react";
 import { NavFooter } from "@/components/ui/nav-footer";
 import { NavMain } from "./nav-main";
@@ -37,29 +34,14 @@ const mainNavItems: NavItem[] = [
     icon: Globe2,
   },
   {
-    title: "Deployments",
-    href: "/dashboard/deployments",
-    icon: Rocket,
-  },
-  {
     title: "Databases",
     href: "/dashboard/databases",
     icon: Database,
   },
   {
-    title: "Files",
-    href: "/dashboard/files",
-    icon: Folder,
-  },
-  {
     title: "SSH Access",
     href: "/dashboard/ssh-access",
     icon: KeyRound,
-  },
-  {
-    title: "Support",
-    href: "/dashboard/support",
-    icon: LifeBuoy,
   },
 ];
 

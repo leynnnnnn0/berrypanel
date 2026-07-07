@@ -3,57 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Site;
-use App\Models\User;
 use App\Services\NginxSiteProvisioner;
+use App\Services\SiteCreator;
+use App\Services\SiteEnvironmentService;
+use App\Services\SitePresenter;
 use App\Services\SiteProvisioner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 class SiteController extends Controller
 {
-    private const ENV_KEYS = [
-        'APP_NAME',
-        'APP_ENV',
-        'APP_KEY',
-        'APP_DEBUG',
-        'APP_URL',
-        'LOG_CHANNEL',
-        'DB_CONNECTION',
-        'DB_HOST',
-        'DB_PORT',
-        'DB_DATABASE',
-        'DB_USERNAME',
-        'DB_PASSWORD',
-        'CACHE_STORE',
-        'QUEUE_CONNECTION',
-        'SESSION_DRIVER',
-        'MAIL_MAILER',
-        'MAIL_HOST',
-        'MAIL_PORT',
-        'MAIL_USERNAME',
-        'MAIL_PASSWORD',
-        'MAIL_FROM_ADDRESS',
-        'MAIL_FROM_NAME',
-    ];
-
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, SitePresenter $presenter): JsonResponse
     {
         return response()->json([
             'sites' => $request->user()
                 ->sites()
                 ->latest()
                 ->get()
-                ->map(fn (Site $site) => $this->serialize($site)),
+                ->map(fn (Site $site) => $presenter->toArray($site)),
         ]);
     }
 
-    public function store(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx): JsonResponse
+    public function store(Request $request, SiteCreator $creator, SitePresenter $presenter): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:62', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9 -]*[a-zA-Z0-9]$/'],
             'repository_url' => [
@@ -69,60 +42,28 @@ class SiteController extends Controller
             'repository_branch.regex' => 'Branch can only contain letters, numbers, dots, slashes, underscores, or hyphens.',
         ]);
 
-        $slug = Str::slug($validated['name']);
-
-        if (Site::where('user_id', $user->id)->where('slug', $slug)->exists()) {
-            return response()->json(['message' => 'You already have a site with this name.'], 422);
-        }
-
-        if (! $user->linux_username) {
-            $user->forceFill(['linux_username' => 'user_'.$user->id])->save();
-        }
-
-        $branch = $validated['repository_branch'] ?? 'main';
-        $phpVersion = $validated['php_version'] ?? '8.4';
-        $localUrl = $this->siteHost($slug);
-
         try {
-            $paths = $provisioner->provision($user, $slug, $validated['repository_url'], $branch, $localUrl);
-
-            $nginx->provision($slug, $localUrl, $paths['public_path'], $phpVersion);
+            $site = $creator->create($request->user(), $validated);
         } catch (RuntimeException $exception) {
-            if (isset($paths['root_path'])) {
-                $provisioner->deletePath($paths['root_path']);
-            }
-
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        $site = Site::create([
-            'user_id' => $user->id,
-            'name' => $validated['name'],
-            'slug' => $slug,
-            'stack' => 'Laravel / Inertia',
-            'php_version' => $phpVersion,
-            'status' => $this->statusForProvisionResult($paths),
-            'root_path' => $paths['root_path'],
-            'public_path' => $paths['public_path'],
-            'local_url' => $localUrl,
-            'repository_url' => $validated['repository_url'],
-            'repository_branch' => $branch,
-            'env_variables' => $paths['env_variables'] ?? null,
-            'deployment_warnings' => $paths['deployment_warnings'] ?? [],
-        ]);
-
-        return response()->json(['site' => $this->serialize($site)], 201);
+        return response()->json(['site' => $presenter->toArray($site)], 201);
     }
 
-    public function show(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
+    public function show(Request $request, SitePresenter $presenter, Site $site): JsonResponse
     {
         $this->authorizeSite($request, $site);
 
-        return response()->json(['site' => $this->serialize($site, includeEnvironment: true, provisioner: $provisioner)]);
+        return response()->json(['site' => $presenter->toArray($site, includeEnvironment: true)]);
     }
 
-    public function updateEnvironment(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
-    {
+    public function updateEnvironment(
+        Request $request,
+        SiteEnvironmentService $environment,
+        SitePresenter $presenter,
+        Site $site,
+    ): JsonResponse {
         $this->authorizeSite($request, $site);
 
         $request->validate([
@@ -151,41 +92,18 @@ class SiteController extends Controller
             'variables.MAIL_FROM_NAME' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $variables = $this->environmentForSite($site, $provisioner);
+        $variables = $environment->mergeSubmitted($site, $request->input('variables', []));
+        $site = $environment->persist($site, $variables);
 
-        foreach (self::ENV_KEYS as $key) {
-            if ($request->has("variables.{$key}")) {
-                $variables[$key] = $request->input("variables.{$key}") ?? '';
-            }
-        }
-
-        $provisioner->writeEnvironmentFile($site, $variables);
-
-        $site->forceFill([
-            'env_variables' => $variables,
-            'status' => $this->statusForEnvironment($site, $variables),
-        ])->save();
-
-        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true, provisioner: $provisioner)]);
+        return response()->json(['site' => $presenter->toArray($site, includeEnvironment: true)]);
     }
 
-    public function clearDeploymentWarnings(Request $request, SiteProvisioner $provisioner, Site $site): JsonResponse
-    {
-        $this->authorizeSite($request, $site);
-
-        $variables = $this->environmentForSite($site, $provisioner);
-
-        $site->forceFill([
-            'deployment_warnings' => [],
-            'env_variables' => $variables,
-            'status' => $this->statusForEnvironment($site, $variables, []),
-        ])->save();
-
-        return response()->json(['site' => $this->serialize($site->refresh(), includeEnvironment: true, provisioner: $provisioner)]);
-    }
-
-    public function destroy(Request $request, SiteProvisioner $provisioner, NginxSiteProvisioner $nginx, Site $site): JsonResponse
-    {
+    public function destroy(
+        Request $request,
+        SiteProvisioner $provisioner,
+        NginxSiteProvisioner $nginx,
+        Site $site,
+    ): JsonResponse {
         $this->authorizeSite($request, $site);
 
         try {
@@ -200,126 +118,10 @@ class SiteController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    private function serialize(Site $site, bool $includeEnvironment = false, ?SiteProvisioner $provisioner = null): array
-    {
-        $payload = [
-            'id' => $site->id,
-            'name' => $site->name,
-            'slug' => $site->slug,
-            'stack' => $site->stack,
-            'php_version' => $site->php_version,
-            'status' => $site->status,
-            'root_path' => $site->root_path,
-            'public_path' => $site->public_path,
-            'local_url' => $site->local_url,
-            'repository_url' => $site->repository_url,
-            'repository_branch' => $site->repository_branch,
-            'deployment_warnings' => $site->deployment_warnings ?: [],
-            'created_at' => $site->created_at?->toISOString(),
-            'updated_at' => $site->updated_at?->toISOString(),
-        ];
-
-        if ($includeEnvironment) {
-            $payload['env_variables'] = $this->environmentForSite($site, $provisioner);
-        }
-
-        return $payload;
-    }
-
     private function authorizeSite(Request $request, Site $site): void
     {
         if ($site->user_id !== $request->user()->id) {
             abort(404);
         }
-    }
-
-    private function defaultEnvironment(Site $site): array
-    {
-        return [
-            'APP_NAME' => $site->name,
-            'APP_ENV' => 'production',
-            'APP_KEY' => '',
-            'APP_DEBUG' => 'false',
-            'APP_URL' => $site->local_url ? "http://{$site->local_url}" : '',
-            'LOG_CHANNEL' => 'stack',
-            'DB_CONNECTION' => 'mysql',
-            'DB_HOST' => '127.0.0.1',
-            'DB_PORT' => '3306',
-            'DB_DATABASE' => Str::slug($site->slug, '_').'_db',
-            'DB_USERNAME' => $site->user?->linux_username ?? '',
-            'DB_PASSWORD' => '',
-            'CACHE_STORE' => 'file',
-            'QUEUE_CONNECTION' => 'sync',
-            'SESSION_DRIVER' => 'file',
-            'MAIL_MAILER' => 'log',
-            'MAIL_HOST' => '',
-            'MAIL_PORT' => '',
-            'MAIL_USERNAME' => '',
-            'MAIL_PASSWORD' => '',
-            'MAIL_FROM_ADDRESS' => '',
-            'MAIL_FROM_NAME' => $site->name,
-        ];
-    }
-
-    private function environmentForSite(Site $site, ?SiteProvisioner $provisioner = null): array
-    {
-        $fileVariables = null;
-
-        if ($provisioner !== null && is_string($site->root_path) && $site->root_path !== '') {
-            $fileVariables = $provisioner->readEnvironmentFile($site->root_path);
-        }
-
-        return array_replace(
-            $this->defaultEnvironment($site),
-            $site->env_variables ?: [],
-            $fileVariables ?: [],
-        );
-    }
-
-    private function statusForProvisionResult(array $paths): string
-    {
-        if (! ($paths['deployed'] ?? false)) {
-            return 'provisioned';
-        }
-
-        $variables = $paths['env_variables'] ?? [];
-
-        return $this->statusForEnvironment(
-            new Site(['deployment_warnings' => $paths['deployment_warnings'] ?? []]),
-            is_array($variables) ? $variables : [],
-        );
-    }
-
-    private function statusForEnvironment(Site $site, array $variables, ?array $deploymentWarnings = null): string
-    {
-        $hasRequiredRuntime = collect(['APP_KEY', 'APP_URL', 'DB_DATABASE', 'DB_USERNAME'])
-            ->every(fn (string $key) => isset($variables[$key]) && trim((string) $variables[$key]) !== '');
-
-        if (! $hasRequiredRuntime) {
-            return 'needs_configuration';
-        }
-
-        $warnings = $deploymentWarnings ?? ($site->deployment_warnings ?: []);
-
-        return $warnings === [] ? 'provisioned' : 'needs_configuration';
-    }
-
-    private function siteHost(string $slug): string
-    {
-        $suffix = trim((string) config('berrypanel.site_domain_suffix'));
-        $serverIp = trim((string) config('berrypanel.server_ip'));
-
-        if ($suffix === '' && filter_var($serverIp, FILTER_VALIDATE_IP)) {
-            $suffix = "{$serverIp}.nip.io";
-        }
-
-        if ($suffix === '') {
-            $suffix = 'berrypanel.local';
-        }
-
-        $suffix = preg_replace('#^https?://#', '', $suffix) ?? $suffix;
-        $suffix = trim($suffix, " \t\n\r\0\x0B.");
-
-        return "{$slug}.{$suffix}";
     }
 }

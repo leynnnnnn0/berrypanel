@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\HostingDatabaseController;
+use App\Http\Controllers\SiteController;
+use App\Http\Controllers\SiteDeploymentWarningController;
+use App\Http\Controllers\SshAccessController;
+use App\Http\Controllers\UsageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
-use Laravel\Fortify\Http\Controllers\RegisteredUserController;
-use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
-use App\Http\Controllers\HostingDatabaseController;
-use App\Http\Controllers\SiteController;
-use App\Http\Controllers\SshAccessController;
-use App\Http\Controllers\UsageController;
+use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
+use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware('throttle:6,1');
@@ -26,7 +27,7 @@ Route::post('/register', [RegisteredUserController::class, 'store'])
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::get('/user', fn(Request $request) => response()->json(
+    Route::get('/user', fn (Request $request) => response()->json(
         $request->user()->only('id', 'name', 'email', 'linux_username')
     ));
     Route::get('/usage', [UsageController::class, 'show']);
@@ -34,7 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sites', [SiteController::class, 'store']);
     Route::get('/sites/{site}', [SiteController::class, 'show']);
     Route::put('/sites/{site}/env', [SiteController::class, 'updateEnvironment']);
-    Route::delete('/sites/{site}/deployment-warnings', [SiteController::class, 'clearDeploymentWarnings']);
+    Route::delete('/sites/{site}/deployment-warnings', [SiteDeploymentWarningController::class, 'destroy']);
     Route::delete('/sites/{site}', [SiteController::class, 'destroy']);
     Route::get('/databases', [HostingDatabaseController::class, 'index']);
     Route::post('/databases', [HostingDatabaseController::class, 'store']);

@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { SectionTitle } from "@/components/dashboard/section-title";
+import { StatusPill } from "@/components/dashboard/status-pill";
 import {
   Dialog,
   DialogContent,
@@ -13,21 +16,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import {
-  ArrowUpRight,
+  formatBreakdownDetail,
+  formatBytes,
+  formatCount,
+  formatRelativeTime,
+  siteStatusLabel,
+} from "@/lib/dashboard-formatters";
+import type {
+  CreateSiteResponse,
+  DeployActivity,
+  Site,
+  SitesResponse,
+  UsageResponse,
+} from "@/types/dashboard";
+import {
   CheckCircle2,
   Clock3,
   CloudUpload,
-  Database,
   ExternalLink,
   Folder,
   GitBranch,
   GitFork,
   Globe2,
   HardDrive,
-  KeyRound,
-  LifeBuoy,
   Loader2,
-  LockKeyhole,
   Plus,
   ServerCog,
   Terminal,
@@ -36,69 +48,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-
-type Site = {
-  id: number;
-  name: string;
-  slug: string;
-  stack: string;
-  php_version: string;
-  status: string;
-  root_path: string;
-  public_path: string;
-  local_url: string | null;
-  repository_url: string | null;
-  repository_branch: string;
-  deployment_warnings: string[];
-  created_at: string | null;
-  updated_at: string | null;
-};
-
-type SitesResponse = {
-  sites: Site[];
-};
-
-type CreateSiteResponse = {
-  site: Site;
-};
-
-type UsageResponse = {
-  usage: {
-    total_bytes: number;
-    quota_bytes: number;
-    percent: number;
-    file_count: number;
-    directory_count: number;
-    breakdown: {
-      application: UsageBreakdownItem;
-      uploads: UsageBreakdownItem;
-      backups: UsageBreakdownItem;
-      logs: UsageBreakdownItem;
-    };
-    sites: SiteUsageItem[];
-  };
-};
-
-type UsageBreakdownItem = {
-  bytes: number;
-  files: number;
-  directories: number;
-};
-
-type SiteUsageItem = UsageBreakdownItem & {
-  id: number;
-  name: string;
-  slug: string;
-  exists: boolean;
-};
-
-type DeployActivity = {
-  id: string;
-  label: string;
-  detail: string;
-  tone: "success" | "warning";
-  timestamp: string | null;
-};
 
 const deploySteps = [
   {
@@ -127,176 +76,6 @@ const deploySteps = [
   },
 ];
 
-function StatusPill({ children }: { children: string }) {
-  const normalized = children.toLowerCase();
-  const tone =
-    normalized === "online" || normalized === "provisioned"
-      ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : normalized === "deploying" || normalized === "needs configuration"
-        ? "bg-[#fff0b8] text-[#5c4b10]"
-        : "bg-[#f4f4f4] text-[#555]";
-
-  return (
-    <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
-      {children}
-    </span>
-  );
-}
-
-function siteStatusLabel(status: string): string {
-  if (status === "provisioned") {
-    return "Provisioned";
-  }
-
-  if (status === "needs_configuration") {
-    return "Needs configuration";
-  }
-
-  return status;
-}
-
-function formatBytes(bytes: number) {
-  if (bytes <= 0) {
-    return "0 B";
-  }
-
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  const kb = bytes / 1024;
-
-  if (kb < 1024) {
-    return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
-  }
-
-  const mb = kb / 1024;
-
-  if (mb < 1024) {
-    return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
-  }
-
-  const gb = mb / 1024;
-
-  return `${gb.toFixed(gb < 10 ? 1 : 0)} GB`;
-}
-
-function formatCount(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
-}
-
-function formatBreakdownDetail(item?: UsageBreakdownItem) {
-  if (!item) {
-    return "0 files";
-  }
-
-  return `${formatCount(item.files, "file")} / ${formatCount(item.directories, "folder")}`;
-}
-
-function formatRelativeTime(value: string | null) {
-  if (!value) {
-    return "recently";
-  }
-
-  const timestamp = new Date(value).getTime();
-
-  if (Number.isNaN(timestamp)) {
-    return "recently";
-  }
-
-  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-
-  if (seconds < 60) {
-    return "just now";
-  }
-
-  const minutes = Math.floor(seconds / 60);
-
-  if (minutes < 60) {
-    return `${minutes} ${minutes === 1 ? "min" : "mins"} ago`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-
-  if (hours < 24) {
-    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
-  }
-
-  const days = Math.floor(hours / 24);
-
-  return `${days} ${days === 1 ? "day" : "days"} ago`;
-}
-
-function SectionTitle({
-  eyebrow,
-  title,
-}: {
-  eyebrow: string;
-  title: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase text-[#8a8a8a]">
-        {eyebrow}
-      </p>
-      <h2 className="mt-1 text-xl font-semibold text-[#151515]">
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-      <p className="text-sm text-[#777]">{label}</p>
-      <div className="mt-4 flex items-end justify-between gap-4">
-        <span className="text-3xl font-semibold text-[#151515]">
-          {value}
-        </span>
-        <span className="rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#555]">
-          {detail}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function ActionCard({
-  icon: Icon,
-  title,
-  body,
-  action,
-}: {
-  icon: typeof Database;
-  title: string;
-  body: string;
-  action: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <span className="grid size-11 place-items-center rounded-full bg-[#d8cef2] text-[#171717]">
-          <Icon className="size-5" />
-        </span>
-        <ArrowUpRight className="size-5 text-[#777]" />
-      </div>
-      <h3 className="mt-5 text-lg font-semibold">{title}</h3>
-      <p className="mt-2 text-sm leading-5 text-[#666]">{body}</p>
-      <button className="mt-5 rounded-full border border-[#777] px-4 py-2 text-sm text-[#202020]">
-        {action}
-      </button>
-    </div>
-  );
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -711,34 +490,7 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        <section className="grid gap-6 lg:grid-cols-4">
-          <ActionCard
-            icon={Database}
-            title="Database"
-            body="default_db is connected and ready for migrations."
-            action="View credentials"
-          />
-          <ActionCard
-            icon={Terminal}
-            title="SFTP Access"
-            body="Upload files with your assigned Linux hosting user."
-            action="Open guide"
-          />
-          <ActionCard
-            icon={LockKeyhole}
-            title="Domain Status"
-            body="One domain is live, one site is waiting for DNS."
-            action="Manage domains"
-          />
-          <ActionCard
-            icon={LifeBuoy}
-            title="Support"
-            body="Need a queue, Reverb, or deploy issue checked?"
-            action="Create ticket"
-          />
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <section>
           <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <SectionTitle eyebrow="Files" title="Storage Breakdown" />
             <div className="mt-6 space-y-4">
@@ -812,27 +564,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl bg-[#fff0b8] p-6 shadow-sm lg:p-8">
-            <div className="flex items-start justify-between gap-5">
-              <SectionTitle eyebrow="Security" title="Access Details" />
-              <KeyRound className="size-7" />
-            </div>
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {[
-                ["SSH host", "192.168.254.117"],
-                ["Username", "demo"],
-                ["Root path", "/srv/berrypanel/users/demo"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl bg-white/70 p-4">
-                  <p className="text-xs uppercase text-[#8a7840]">{label}</p>
-                  <p className="mt-3 break-words text-sm font-medium">
-                    {value}
-                  </p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
