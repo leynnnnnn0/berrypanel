@@ -35,6 +35,24 @@ class UsageController extends Controller
         $uploadBytes = $uploadUsage['bytes'];
         $logBytes = $logUsage['bytes'];
         $applicationBytes = max(0, $totalBytes - $backupBytes - $uploadBytes - $logBytes);
+        $sites = $request->user()
+            ->sites()
+            ->latest()
+            ->get()
+            ->map(function ($site): array {
+                $siteUsage = $this->inspectPath($site->root_path);
+
+                return [
+                    'id' => $site->id,
+                    'name' => $site->name,
+                    'slug' => $site->slug,
+                    'bytes' => $siteUsage['bytes'],
+                    'files' => $siteUsage['files'],
+                    'directories' => $siteUsage['directories'],
+                    'exists' => File::isDirectory($site->root_path),
+                ];
+            })
+            ->values();
 
         return response()->json([
             'usage' => [
@@ -53,6 +71,7 @@ class UsageController extends Controller
                     'backups' => $backupUsage,
                     'logs' => $logUsage,
                 ],
+                'sites' => $sites,
             ],
         ]);
     }

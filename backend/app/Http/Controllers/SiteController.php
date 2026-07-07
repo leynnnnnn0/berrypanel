@@ -207,6 +207,7 @@ class SiteController extends Controller
             'repository_branch' => $site->repository_branch,
             'deployment_warnings' => $site->deployment_warnings ?: [],
             'created_at' => $site->created_at?->toISOString(),
+            'updated_at' => $site->updated_at?->toISOString(),
         ];
 
         if ($includeEnvironment) {

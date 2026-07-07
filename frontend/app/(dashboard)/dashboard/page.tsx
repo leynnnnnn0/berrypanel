@@ -51,6 +51,7 @@ type Site = {
   repository_branch: string;
   deployment_warnings: string[];
   created_at: string | null;
+  updated_at: string | null;
 };
 
 type SitesResponse = {
@@ -74,6 +75,7 @@ type UsageResponse = {
       backups: UsageBreakdownItem;
       logs: UsageBreakdownItem;
     };
+    sites: SiteUsageItem[];
   };
 };
 
@@ -83,12 +85,20 @@ type UsageBreakdownItem = {
   directories: number;
 };
 
-const activities = [
-  "default deployed successfully",
-  "database default_db migrated",
-  "storage link refreshed",
-  "pending DNS check for client-portal",
-];
+type SiteUsageItem = UsageBreakdownItem & {
+  id: number;
+  name: string;
+  slug: string;
+  exists: boolean;
+};
+
+type DeployActivity = {
+  id: string;
+  label: string;
+  detail: string;
+  tone: "success" | "warning";
+  timestamp: string | null;
+};
 
 const deploySteps = [
   {
@@ -181,6 +191,40 @@ function formatBreakdownDetail(item?: UsageBreakdownItem) {
   }
 
   return `${formatCount(item.files, "file")} / ${formatCount(item.directories, "folder")}`;
+}
+
+function formatRelativeTime(value: string | null) {
+  if (!value) {
+    return "recently";
+  }
+
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "recently";
+  }
+
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+
+  if (seconds < 60) {
+    return "just now";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+
+  if (minutes < 60) {
+    return `${minutes} ${minutes === 1 ? "min" : "mins"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
 }
 
 function SectionTitle({
@@ -391,6 +435,51 @@ export default function DashboardPage() {
     branch: site.repository_branch ? site.repository_branch : "main",
     accent: index % 2 === 0 ? "bg-[#d8cef2]" : "bg-[#fff0b8]",
   }));
+  const siteStorage = usage?.sites ?? [];
+  const deploymentActivities = useMemo<DeployActivity[]>(() => {
+    return sites
+      .flatMap((site) => {
+        const timestamp = site.updated_at ?? site.created_at;
+        const items: DeployActivity[] = [
+          {
+            id: `${site.id}-created`,
+            label: `${site.name} site provisioned`,
+            detail: `${site.repository_branch || "main"} branch`,
+            tone: "success",
+            timestamp,
+          },
+        ];
+
+        if (site.status === "needs_configuration") {
+          items.unshift({
+            id: `${site.id}-configuration`,
+            label: `${site.name} needs .env setup`,
+            detail: "Open the site page to finish database and runtime values",
+            tone: "warning",
+            timestamp,
+          });
+        }
+
+        if (site.deployment_warnings.length > 0) {
+          items.unshift({
+            id: `${site.id}-warning`,
+            label: `${site.name} deploy warning saved`,
+            detail: site.deployment_warnings[0],
+            tone: "warning",
+            timestamp,
+          });
+        }
+
+        return items;
+      })
+      .sort((left, right) => {
+        const leftTime = left.timestamp ? new Date(left.timestamp).getTime() : 0;
+        const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0;
+
+        return rightTime - leftTime;
+      })
+      .slice(0, 5);
+  }, [sites]);
 
   const stats = useMemo(
     () => [
@@ -399,11 +488,21 @@ export default function DashboardPage() {
         value: loadingSites ? "..." : String(sites.length),
         detail: sites.length === 1 ? "site" : "sites",
       },
-      { label: "Deployments", value: "0", detail: "coming soon" },
+      {
+        label: "Deployments",
+        value: loadingSites ? "..." : String(deploymentActivities.length),
+        detail: deploymentActivities.length === 1 ? "event" : "events",
+      },
       { label: "Storage", value: storageUsed, detail: workspaceCountDetail },
       { label: "Databases", value: "0", detail: "coming soon" },
     ],
-    [loadingSites, sites.length, storageUsed, workspaceCountDetail],
+    [
+      deploymentActivities.length,
+      loadingSites,
+      sites.length,
+      storageUsed,
+      workspaceCountDetail,
+    ],
   );
 
   return (
@@ -575,19 +674,35 @@ export default function DashboardPage() {
           <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <SectionTitle eyebrow="Activity" title="Latest Deploy Log" />
             <div className="mt-6 space-y-3">
-              {activities.map((item, index) => (
-                <div key={item} className="flex gap-3 rounded-2xl bg-[#f7f7f7] p-4">
+              {loadingSites && (
+                <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                  Loading deployment activity...
+                </div>
+              )}
+
+              {!loadingSites && deploymentActivities.length === 0 && (
+                <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                  No deploy activity yet. Create a Laravel site to start the
+                  log.
+                </div>
+              )}
+
+              {!loadingSites && deploymentActivities.map((item) => (
+                <div key={item.id} className="flex gap-3 rounded-2xl bg-[#f7f7f7] p-4">
                   <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-white">
-                    {index === 3 ? (
+                    {item.tone === "warning" ? (
                       <Clock3 className="size-4 text-[#7b6415]" />
                     ) : (
                       <CheckCircle2 className="size-4 text-[#467a2d]" />
                     )}
                   </span>
-                  <div>
-                    <p className="text-sm font-medium">{item}</p>
-                    <p className="mt-1 text-xs text-[#777]">
-                      {index + 1} min ago
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="mt-1 max-h-10 overflow-hidden break-words text-xs text-[#777] [overflow-wrap:anywhere]">
+                      {item.detail}
+                    </p>
+                    <p className="mt-2 text-xs text-[#999]">
+                      {formatRelativeTime(item.timestamp)}
                     </p>
                   </div>
                 </div>
@@ -648,6 +763,55 @@ export default function DashboardPage() {
                   </span>
                 </div>
               ))}
+            </div>
+            <div className="mt-6 border-t border-black/5 pt-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-[#151515]">
+                  Sites using storage
+                </h3>
+                <span className="text-xs text-[#777]">
+                  {formatCount(siteStorage.length, "site")}
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {loadingUsage && (
+                  <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                    Scanning site folders...
+                  </div>
+                )}
+
+                {!loadingUsage && siteStorage.length === 0 && (
+                  <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                    No site folders found for this workspace yet.
+                  </div>
+                )}
+
+                {!loadingUsage && siteStorage.map((site) => (
+                  <div
+                    key={site.id}
+                    className="rounded-2xl bg-[#f7f7f7] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {site.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[#777]">
+                          {formatBreakdownDetail(site)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-white px-3 py-1 text-sm">
+                        {formatBytes(site.bytes)}
+                      </span>
+                    </div>
+                    {!site.exists && (
+                      <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-[#8a6810]">
+                        Folder missing on the server.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

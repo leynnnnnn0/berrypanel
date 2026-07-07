@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Site;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 
@@ -27,6 +28,19 @@ test('a user can view storage usage for their linux workspace', function () {
     ]);
 
     $user = User::factory()->create(['linux_username' => 'user_1']);
+    Site::create([
+        'user_id' => $user->id,
+        'name' => 'Demo',
+        'slug' => 'demo',
+        'stack' => 'Laravel / Inertia',
+        'php_version' => '8.4',
+        'status' => 'provisioned',
+        'root_path' => $siteRoot,
+        'public_path' => "{$siteRoot}/public",
+        'local_url' => 'demo.berrypanel.local',
+        'repository_url' => 'https://github.com/example/demo',
+        'repository_branch' => 'main',
+    ]);
 
     $response = $this->actingAs($user)->getJson('/api/usage');
 
@@ -39,5 +53,9 @@ test('a user can view storage usage for their linux workspace', function () {
         ->assertJsonPath('usage.breakdown.uploads.files', 1)
         ->assertJsonPath('usage.breakdown.logs.bytes', 20)
         ->assertJsonPath('usage.breakdown.backups.bytes', 30)
-        ->assertJsonPath('usage.breakdown.application.bytes', 40);
+        ->assertJsonPath('usage.breakdown.application.bytes', 40)
+        ->assertJsonPath('usage.sites.0.name', 'Demo')
+        ->assertJsonPath('usage.sites.0.bytes', 100)
+        ->assertJsonPath('usage.sites.0.files', 4)
+        ->assertJsonPath('usage.sites.0.exists', true);
 });
