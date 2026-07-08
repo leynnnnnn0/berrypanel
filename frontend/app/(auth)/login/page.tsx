@@ -33,6 +33,7 @@ function LoginPageContent() {
     try {
       const response = await api<AuthResponse>("/api/login", {
         method: "POST",
+        skipAuth: true,
         body: JSON.stringify({
           email: form.get("email"),
           password: form.get("password"),

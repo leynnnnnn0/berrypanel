@@ -1,4 +1,5 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
 type ApiOptions = RequestInit & { skipAuth?: boolean };
 
@@ -22,12 +23,13 @@ export async function api<T = unknown>(
   endpoint: string,
   options: ApiOptions = {},
 ): Promise<T> {
+  const normalizedEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const token =
     typeof window !== "undefined"
       ? window.localStorage.getItem("berrypanel_auth_token")
       : null;
 
-  const res = await fetch(`${BASE}${endpoint}`, {
+  const res = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

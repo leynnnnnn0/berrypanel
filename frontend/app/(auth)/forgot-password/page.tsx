@@ -24,6 +24,7 @@ export default function ForgotPasswordPage() {
     try {
       await api("/api/forgot-password", {
         method: "POST",
+        skipAuth: true,
         body: JSON.stringify({
           email: form.get("email"),
         }),

@@ -27,6 +27,7 @@ function ResetPasswordPageContent() {
     try {
       await api("/api/reset-password", {
         method: "POST",
+        skipAuth: true,
         body: JSON.stringify({
           token,
           email,

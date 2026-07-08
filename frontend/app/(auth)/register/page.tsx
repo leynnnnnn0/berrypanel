@@ -28,6 +28,7 @@ export default function RegisterPage() {
     try {
       const response = await api<AuthResponse>("/api/register", {
         method: "POST",
+        skipAuth: true,
         body: JSON.stringify({
           name: form.get("name"),
           email: form.get("email"),
