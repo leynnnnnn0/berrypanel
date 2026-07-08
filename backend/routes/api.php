@@ -20,10 +20,12 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->name('password.reset');
 
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('throttle:login');
+    ->middleware('throttle:login')
+    ->name('api.login');
 
 Route::post('/register', [RegisteredUserController::class, 'store'])
-    ->middleware('throttle:6,1');
+    ->middleware('throttle:6,1')
+    ->name('api.register');
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -44,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/ssh-access', [SshAccessController::class, 'update']);
     Route::delete('/ssh-access', [SshAccessController::class, 'destroy']);
 
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+        ->name('api.logout');
 
 });
