@@ -21,6 +21,7 @@ return [
 
     'allowed_origins' => array_values(array_unique(array_filter([
         env('FRONTEND_URL'),
+        'https://capstoneprototype.online',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:3001',

@@ -12,6 +12,9 @@ use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
+Route::options('/{any}', fn () => response()->noContent())
+    ->where('any', '.*');
+
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
     ->middleware('throttle:6,1');
 
