@@ -41,6 +41,7 @@ JSON);
     config([
         'berrypanel.users_root' => $usersRoot,
         'berrypanel.git_deploy_enabled' => true,
+        'berrypanel.site_url_scheme' => 'https',
     ]);
 
     $user = User::factory()->create(['linux_username' => 'user_1']);
@@ -50,7 +51,7 @@ JSON);
     expect($result['root_path'])->toBe($usersRoot.'/user_1/sites/loanly')
         ->and(File::isDirectory($result['root_path']))->toBeTrue()
         ->and(File::exists($result['root_path'].'/artisan'))->toBeTrue()
-        ->and(File::get($result['root_path'].'/.env'))->toContain('APP_URL=http://loanly.192.168.254.113.nip.io')
+        ->and(File::get($result['root_path'].'/.env'))->toContain('APP_URL=https://loanly.192.168.254.113.nip.io')
         ->and($result['deployment_warnings'])->toHaveCount(1)
         ->and($result['deployment_warnings'][0])->toContain('Frontend build failed')
         ->and($result['deployment_warnings'][0])->toContain('berrypanel-missing-vite-binary');

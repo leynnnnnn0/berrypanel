@@ -251,7 +251,7 @@ class SiteProvisioner
         if (is_string($appUrl) && $appUrl !== '') {
             $defaults['APP_URL'] = str_starts_with($appUrl, 'http://') || str_starts_with($appUrl, 'https://')
                 ? $appUrl
-                : "http://{$appUrl}";
+                : $this->siteUrl($appUrl);
         }
 
         foreach ($defaults as $key => $value) {
@@ -263,6 +263,14 @@ class SiteProvisioner
         }
 
         File::put($envPath, $content);
+    }
+
+    private function siteUrl(string $host): string
+    {
+        $scheme = trim((string) config('berrypanel.site_url_scheme', 'http'));
+        $scheme = in_array($scheme, ['http', 'https'], true) ? $scheme : 'http';
+
+        return "{$scheme}://{$host}";
     }
 
     private function runCommand(array $command, string $workingDirectory, string $failureMessage, bool $allowFailure = false): ?string
@@ -341,8 +349,8 @@ class SiteProvisioner
 
         $nearestExistingPath = $usersRoot;
 
-        while (! File::exists($nearestExistingPath)) {
-            $parent = dirname($nearestExistingPath);
+        while (! File::exists($nearestExistingPath)) { 
+            $parent = dirname($nearestExistingPath); 
 
             if ($parent === $nearestExistingPath) {
                 break;

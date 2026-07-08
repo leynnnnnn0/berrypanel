@@ -104,7 +104,7 @@ class SiteEnvironmentService
             'APP_ENV' => 'production',
             'APP_KEY' => '',
             'APP_DEBUG' => 'false',
-            'APP_URL' => $site->local_url ? "http://{$site->local_url}" : '',
+            'APP_URL' => $site->local_url ? $this->siteUrl($site->local_url) : '',
             'LOG_CHANNEL' => 'stack',
             'DB_CONNECTION' => 'mysql',
             'DB_HOST' => '127.0.0.1',
@@ -123,6 +123,14 @@ class SiteEnvironmentService
             'MAIL_FROM_ADDRESS' => '',
             'MAIL_FROM_NAME' => $site->name,
         ];
+    }
+
+    private function siteUrl(string $host): string
+    {
+        $scheme = trim((string) config('berrypanel.site_url_scheme', 'http'));
+        $scheme = in_array($scheme, ['http', 'https'], true) ? $scheme : 'http';
+
+        return "{$scheme}://{$host}";
     }
 
     private function fromDisk(Site $site): ?array

@@ -4,6 +4,7 @@ return [
     'users_root' => env('BERRYPANEL_USERS_ROOT') ?: storage_path('app/berrypanel/users'),
     'server_ip' => env('BERRYPANEL_SERVER_IP'),
     'site_domain_suffix' => env('BERRYPANEL_SITE_DOMAIN_SUFFIX'),
+    'site_url_scheme' => env('BERRYPANEL_SITE_URL_SCHEME', env('BERRYPANEL_SITE_DOMAIN_SUFFIX') ? 'https' : 'http'),
     'git_deploy_enabled' => (bool) env('BERRYPANEL_GIT_DEPLOY_ENABLED', false),
     'storage_quota_gb' => (int) env('BERRYPANEL_STORAGE_QUOTA_GB', 25),
     'nginx_provisioning_enabled' => (bool) env('BERRYPANEL_NGINX_PROVISIONING_ENABLED', false),
