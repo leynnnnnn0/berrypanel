@@ -15,10 +15,14 @@ import {
   GitFork,
   Globe2,
   Loader2,
+  SendHorizontal,
   ServerCog,
+  Terminal,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 type EnvVariables = Record<string, string>;
@@ -42,6 +46,25 @@ type Site = {
 
 type SiteResponse = {
   site: Site;
+};
+
+type SiteCommandResult = {
+  command: string;
+  exit_code: number | null;
+  successful: boolean;
+  output: string;
+  ran_at: string;
+};
+
+type SiteCommandResponse = {
+  result: SiteCommandResult;
+  site: Site;
+};
+
+type TerminalLine = {
+  id: number;
+  kind: "input" | "output" | "error" | "system";
+  text: string;
 };
 
 const appFields = [
@@ -187,6 +210,10 @@ export default function SiteShowPage() {
   const [clearingWarnings, setClearingWarnings] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [command, setCommand] = useState("");
+  const [commandRunning, setCommandRunning] = useState(false);
+  const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
 
   useEffect(() => {
     async function loadSite() {
@@ -275,6 +302,77 @@ export default function SiteShowPage() {
     await navigator.clipboard.writeText(value);
   }
 
+  function appendTerminalLine(kind: TerminalLine["kind"], text: string) {
+    setTerminalLines((current) => [
+      ...current,
+      { id: Date.now() + current.length, kind, text },
+    ]);
+  }
+
+  function openConsole() {
+    setConsoleOpen(true);
+
+    if (terminalLines.length === 0 && site) {
+      setTerminalLines([
+        {
+          id: Date.now(),
+          kind: "system",
+          text: `Connected to ${site.slug}. Type approved Laravel commands here. Examples: php artisan migrate --force, php artisan key:generate --force, npm run build, composer install, git pull origin ${site.repository_branch || "main"}.`,
+        },
+      ]);
+    }
+  }
+
+  async function runConsoleCommand(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!site || command.trim() === "") {
+      return;
+    }
+
+    const value = command.trim();
+
+    appendTerminalLine(
+      "input",
+      `user@${site.slug}:~/sites/${site.slug}$ ${value}`,
+    );
+    setCommand("");
+    setCommandRunning(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await api<SiteCommandResponse>(
+        `/api/sites/${site.id}/commands`,
+        {
+          method: "POST",
+          body: JSON.stringify({ command: value }),
+        },
+      );
+
+      setSite(response.site);
+      setVariables(response.site.env_variables ?? {});
+      appendTerminalLine(
+        response.result.successful ? "output" : "error",
+        response.result.output,
+      );
+
+      if (response.result.successful) {
+        setSuccess(`Command finished: ${response.result.command}`);
+      } else {
+        setError(`Command failed: ${response.result.command}`);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to run command";
+
+      appendTerminalLine("error", message);
+      setError(message);
+    } finally {
+      setCommandRunning(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#f5f5f5] text-[#555]">
@@ -361,6 +459,14 @@ export default function SiteShowPage() {
                   {site.php_version}
                 </span>
               </div>
+              <Button
+                type="button"
+                className="mt-2 h-11 rounded-full bg-black text-white hover:bg-black/85"
+                onClick={openConsole}
+              >
+                <Terminal className="size-4" />
+                Open terminal
+              </Button>
             </div>
           </div>
         </section>
@@ -577,6 +683,91 @@ export default function SiteShowPage() {
           </div>
         </div>
       </div>
+
+      {consoleOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6">
+          <section className="flex h-[min(760px,calc(100vh-2rem))] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-[#101010] shadow-2xl">
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-4 text-white sm:px-6">
+              <div>
+                <p className="text-xs font-medium uppercase text-white/45">
+                  BerryPanel terminal
+                </p>
+                <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold">
+                  <Terminal className="size-5" />
+                  {site.name}
+                </h2>
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="rounded-full text-white hover:bg-white/10 hover:text-white"
+                onClick={() => setConsoleOpen(false)}
+              >
+                <X className="size-5" />
+              </Button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 font-mono text-sm sm:px-6">
+              <div className="space-y-3">
+                {terminalLines.map((line) => (
+                  <pre
+                    key={line.id}
+                    className={`whitespace-pre-wrap break-words rounded-2xl px-4 py-3 leading-6 [overflow-wrap:anywhere] ${
+                      line.kind === "input"
+                        ? "bg-white/5 text-[#98fb98]"
+                        : line.kind === "error"
+                          ? "bg-red-500/10 text-red-300"
+                          : line.kind === "system"
+                            ? "bg-[#d8cef2]/10 text-[#d8cef2]"
+                            : "bg-white/[0.03] text-white/80"
+                    }`}
+                  >
+                    {line.text}
+                  </pre>
+                ))}
+                {commandRunning && (
+                  <p className="inline-flex items-center gap-2 text-white/50">
+                    <Loader2 className="size-4 animate-spin" />
+                    Running command...
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <form
+              className="border-t border-white/10 bg-black/30 p-3 sm:p-4"
+              onSubmit={runConsoleCommand}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <span className="shrink-0 font-mono text-sm text-[#98fb98]">
+                  user@{site.slug}:~/sites/{site.slug}$
+                </span>
+                <Input
+                  value={command}
+                  disabled={commandRunning}
+                  autoComplete="off"
+                  placeholder="Type an approved command"
+                  className="h-11 rounded-full border-white/10 bg-white/10 px-4 font-mono text-sm text-white placeholder:text-white/35 focus-visible:ring-white/30"
+                  onChange={(event) => setCommand(event.target.value)}
+                />
+                <Button
+                  type="submit"
+                  disabled={commandRunning || command.trim() === ""}
+                  className="h-11 rounded-full bg-white px-5 text-black hover:bg-white/90"
+                >
+                  {commandRunning ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="size-4" />
+                  )}
+                  Run
+                </Button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

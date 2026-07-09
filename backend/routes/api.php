@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HostingDatabaseController;
+use App\Http\Controllers\SiteCommandController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SiteDeploymentWarningController;
 use App\Http\Controllers\SshAccessController;
@@ -39,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sites', [SiteController::class, 'index']);
     Route::post('/sites', [SiteController::class, 'store']);
     Route::get('/sites/{site}', [SiteController::class, 'show']);
+    Route::post('/sites/{site}/commands', SiteCommandController::class);
     Route::put('/sites/{site}/env', [SiteController::class, 'updateEnvironment']);
     Route::delete('/sites/{site}/deployment-warnings', [SiteDeploymentWarningController::class, 'destroy']);
     Route::delete('/sites/{site}', [SiteController::class, 'destroy']);
