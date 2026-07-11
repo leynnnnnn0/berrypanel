@@ -6,6 +6,7 @@ import {
   Globe2,
   KeyRound,
   LayoutGrid,
+  Blocks,
 } from "lucide-react";
 import { NavFooter } from "@/components/ui/nav-footer";
 import { NavMain } from "./nav-main";
@@ -32,6 +33,11 @@ const mainNavItems: NavItem[] = [
     title: "Sites",
     href: "/dashboard/sites",
     icon: Globe2,
+  },
+  {
+    title: "Node + Laravel Hosting",
+    href: "/dashboard/node-laravel-hosting",
+    icon: Blocks,
   },
   {
     title: "Databases",

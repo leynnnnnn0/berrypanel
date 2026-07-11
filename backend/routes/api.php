@@ -11,6 +11,7 @@ use App\Http\Controllers\HostingEnvironmentController;
 use App\Http\Controllers\HostingProjectController;
 use App\Http\Controllers\HostingTerminalController;
 use App\Http\Controllers\SiteServiceController;
+use App\Http\Controllers\HybridHostingProjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
@@ -43,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
     ));
     Route::get('/usage', [UsageController::class, 'show']);
     Route::get('/sites', [SiteController::class, 'index']);
+    Route::get('/node-laravel-hosting', [HybridHostingProjectController::class, 'index']);
+    Route::post('/node-laravel-hosting', [HybridHostingProjectController::class, 'store']);
     Route::post('/sites', [SiteController::class, 'store']);
     Route::get('/sites/{site}', [SiteController::class, 'show']);
     Route::post('/sites/{site}/commands', SiteCommandController::class);

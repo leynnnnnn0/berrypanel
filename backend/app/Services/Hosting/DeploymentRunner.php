@@ -7,7 +7,7 @@ class DeploymentRunner {
     public function run(Deployment $deployment): void {
         $site=$deployment->site()->firstOrFail(); $started=microtime(true); $deployment->update(['status'=>'running','started_at'=>now()]); $site->update(['status'=>'deploying']);
         try {
-            $root=$this->paths->root($site); $this->command($deployment,'repository',['git','fetch','origin'],$root); $this->command($deployment,'repository',['git','checkout',$deployment->commit_hash ?: $site->repository_branch],$root); if(!$deployment->commit_hash)$this->command($deployment,'repository',['git','pull','--ff-only','origin',$site->repository_branch],$root);
+            $root=$this->paths->root($site); if(!File::isDirectory($root.'/.git')){$this->command($deployment,'repository',['git','clone','--branch',$site->repository_branch,$site->repository_url,'.'],$root);}else{$this->command($deployment,'repository',['git','fetch','origin'],$root);} $this->command($deployment,'repository',['git','checkout',$deployment->commit_hash ?: $site->repository_branch],$root); if(!$deployment->commit_hash)$this->command($deployment,'repository',['git','pull','--ff-only','origin',$site->repository_branch],$root);
             $dirs=$this->paths->validateApplicationDirectories($site); $this->log($deployment,'validation','Configured Laravel and Node.js directories are valid.');
             $this->command($deployment,'composer',['composer','install','--no-dev','--optimize-autoloader','--no-interaction'],$dirs['backend']);
             $install=$this->approvedNodeCommand($site->node_install_command,$site->package_manager,'install'); $this->command($deployment,'node-install',$install,$dirs['frontend']);
