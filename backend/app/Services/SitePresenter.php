@@ -30,6 +30,7 @@ class SitePresenter
             'node_install_command' => $site->node_install_command,
             'node_build_command' => $site->node_build_command,
             'node_start_command' => $site->node_start_command,
+            'node_port' => $site->node_port,
             'domain' => $site->domain,
             'ssl_enabled' => $site->ssl_enabled,
             'migrate_on_deploy' => $site->migrate_on_deploy,

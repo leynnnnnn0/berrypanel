@@ -34,6 +34,23 @@ class NginxSiteProvisioner
         return true;
     }
 
+    public function provisionHybrid(string $slug, string $host, string $laravelPublicPath, string $phpVersion, int $nodePort): bool
+    {
+        if (! (bool) config('berrypanel.nginx_provisioning_enabled')) return false;
+        $this->validateSiteInput($slug, $host, $laravelPublicPath);
+        if ($nodePort < 1024 || $nodePort > 65535) throw new RuntimeException('BerryPanel refused to proxy to an invalid Node.js port.');
+        $configName = $this->configName($slug); $temporaryPath = storage_path("app/berrypanel/nginx/{$configName}");
+        File::ensureDirectoryExists(dirname($temporaryPath), 0775, true);
+        File::put($temporaryPath, $this->buildHybridServerBlock($host, $laravelPublicPath, $phpVersion, $nodePort));
+        $availablePath = $this->joinPath((string) config('berrypanel.nginx_sites_available_path'), $configName);
+        $enabledPath = $this->joinPath((string) config('berrypanel.nginx_sites_enabled_path'), $configName);
+        $this->run(['sudo','cp',$temporaryPath,$availablePath], 'Unable to install hybrid Nginx site config');
+        $this->run(['sudo','ln','-sfn',$availablePath,$enabledPath], 'Unable to enable hybrid Nginx site config');
+        $this->run(['sudo','nginx','-t'], 'Hybrid Nginx config test failed');
+        $this->run(['sudo','systemctl','reload','nginx'], 'Unable to reload Nginx');
+        return true;
+    }
+
     public function delete(Site $site): void
     {
         if (! (bool) config('berrypanel.nginx_provisioning_enabled')) {
@@ -92,6 +109,46 @@ server {
     }
 }
 
+NGINX;
+    }
+
+    private function buildHybridServerBlock(string $host, string $publicPath, string $phpVersion, int $nodePort): string
+    {
+        $socket = (string) config('berrypanel.nginx_php_fpm_socket');
+        if ($socket === '') $socket = "/run/php/php{$phpVersion}-fpm.sock";
+        return <<<NGINX
+server {
+    listen 80;
+    server_name {$host};
+    root {$publicPath};
+    index index.php;
+
+    location / {
+        proxy_pass http://127.0.0.1:{$nodePort};
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location ^~ /api/ { try_files \$uri \$uri/ @laravel; }
+    location = /api { try_files \$uri @laravel; }
+    location ^~ /storage/ { try_files \$uri =404; }
+
+    location @laravel {
+        include fastcgi_params;
+        fastcgi_pass unix:{$socket};
+        fastcgi_param SCRIPT_FILENAME {$publicPath}/index.php;
+        fastcgi_param SCRIPT_NAME /index.php;
+        fastcgi_param DOCUMENT_ROOT {$publicPath};
+        fastcgi_param HTTP_PROXY "";
+    }
+
+    location ~ /\. { deny all; }
+}
 NGINX;
     }
 

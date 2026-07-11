@@ -3,7 +3,7 @@ namespace App\Services\Hosting;
 use App\Models\Deployment; use App\Models\DeploymentLog; use App\Services\NginxSiteProvisioner;
 use Illuminate\Support\Facades\File; use RuntimeException; use Symfony\Component\Process\Process;
 class DeploymentRunner {
-    public function __construct(private SitePathResolver $paths,private SecretRedactor $redactor,private EnvironmentManager $env,private NginxSiteProvisioner $nginx,private DeploymentBroadcaster $realtime) {}
+    public function __construct(private SitePathResolver $paths,private SecretRedactor $redactor,private EnvironmentManager $env,private NginxSiteProvisioner $nginx,private SupervisorManager $supervisor,private DeploymentBroadcaster $realtime) {}
     public function run(Deployment $deployment): void {
         $site=$deployment->site()->firstOrFail(); $started=microtime(true); $deployment->update(['status'=>'running','started_at'=>now()]); $this->realtime->deployment($deployment); $site->update(['status'=>'deploying']);
         try {
@@ -13,7 +13,8 @@ class DeploymentRunner {
             $install=$this->approvedNodeCommand($site->node_install_command,$site->package_manager,'install'); $this->command($deployment,'node-install',$install,$dirs['frontend']);
             if($site->build_on_deploy)$this->command($deployment,'node-build',$this->approvedNodeCommand($site->node_build_command,$site->package_manager,'build'),$dirs['frontend'],allowFailure:true);
             foreach ([['php','artisan','storage:link'], ...($site->migrate_on_deploy?[['php','artisan','migrate','--force']]:[]), ['php','artisan','optimize']] as $cmd) $this->command($deployment,'laravel',$cmd,$dirs['backend']);
-            $site->forceFill(['public_path'=>$dirs['public']])->save(); $this->nginx->provision($site->slug,$site->domain ?: $site->local_url,$dirs['public'],$site->php_version);
+            $nodePort=(int)config('berrypanel.node_port_base',12000)+$site->id;$this->log($deployment,'node-service',"Starting Node.js production server on internal port {$nodePort}.");$this->supervisor->ensureNodeServer($site,$nodePort);$this->waitForNode($nodePort);$this->log($deployment,'node-service','Node.js Supervisor service is responding.');
+            $site->forceFill(['public_path'=>$dirs['public'],'node_port'=>$nodePort])->save();$this->log($deployment,'nginx','Configuring hybrid proxy: / to Node.js and /api to Laravel.');$this->nginx->provisionHybrid($site->slug,$site->domain ?: $site->local_url,$dirs['public'],$site->php_version,$nodePort);$this->log($deployment,'nginx','Hybrid Nginx configuration activated.');
             $hash=trim($this->capture(['git','rev-parse','HEAD'],$root)); $health=$this->health($site->health_check_url);
             $deployment->update(['status'=>$health['ok']?'succeeded':'failed','commit_hash'=>$hash,'health_check_result'=>$health,'ended_at'=>now(),'duration_ms'=>(int)((microtime(true)-$started)*1000)]);
             $site->update(['status'=>$health['ok']?'online':'failed','current_commit'=>$hash]); $this->realtime->deployment($deployment);
@@ -27,4 +28,5 @@ class DeploymentRunner {
     private function log(Deployment $d,string $step,string $message,string $level='info',?int $exit=null): void { $vars=array_merge($this->env->get($d->site,'laravel'),$this->env->get($d->site,'node')); $log=DeploymentLog::create(['deployment_id'=>$d->id,'step'=>$step,'level'=>$level,'message'=>$this->redactor->redact($message,$vars),'exit_code'=>$exit,'logged_at'=>now()]); $this->realtime->log($log,$d->site_id); }
     private function capture(array $argv,string $cwd): string { $p=new Process($argv,$cwd);$p->mustRun();return $p->getOutput(); }
     private function health(?string $url): array { if(!$url)return ['ok'=>true,'skipped'=>true]; try{$p=new Process(['curl','--fail','--silent','--max-time','15',$url]);$p->run();return ['ok'=>$p->isSuccessful(),'exit_code'=>$p->getExitCode()];}catch(\Throwable $e){return ['ok'=>false,'error'=>$e->getMessage()];} }
+    private function waitForNode(int $port):void{for($attempt=0;$attempt<20;$attempt++){$p=new Process(['curl','--silent','--output','/dev/null','--max-time','2',"http://127.0.0.1:{$port}/"]);$p->run();if($p->isSuccessful())return;usleep(500000);}throw new RuntimeException('Node.js service did not become reachable. Check the Node.js Production Server service logs.');}
 }

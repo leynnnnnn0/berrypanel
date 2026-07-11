@@ -18,6 +18,7 @@ return [
     'database_provisioning_enabled' => (bool) env('BERRYPANEL_DATABASE_PROVISIONING_ENABLED', false),
     'supervisor_enabled' => filter_var(env('BERRYPANEL_SUPERVISOR_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
     'supervisor_config_path' => env('BERRYPANEL_SUPERVISOR_CONFIG_PATH', '/etc/supervisor/conf.d'),
+    'node_port_base' => (int) env('BERRYPANEL_NODE_PORT_BASE', 12000),
     'mysql_admin_host' => env('BERRYPANEL_MYSQL_ADMIN_HOST', '127.0.0.1'),
     'mysql_admin_port' => (int) env('BERRYPANEL_MYSQL_ADMIN_PORT', 3306),
     'mysql_admin_username' => env('BERRYPANEL_MYSQL_ADMIN_USERNAME', 'root'),
