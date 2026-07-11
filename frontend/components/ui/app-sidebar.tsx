@@ -48,7 +48,7 @@ const mainNavItems: NavItem[] = [
 const footerNavItems: NavItem[] = [
   {
     title: "Hosting Guide",
-    href: "https://laravel.com/docs/deployment",
+    href: "/dashboard/hosting-guide",
     icon: BookOpen,
   },
 ];

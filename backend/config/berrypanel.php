@@ -16,6 +16,8 @@ return [
     'ssh_host' => env('BERRYPANEL_SSH_HOST'),
     'ssh_port' => (int) env('BERRYPANEL_SSH_PORT', 22),
     'database_provisioning_enabled' => (bool) env('BERRYPANEL_DATABASE_PROVISIONING_ENABLED', false),
+    'supervisor_enabled' => filter_var(env('BERRYPANEL_SUPERVISOR_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'supervisor_config_path' => env('BERRYPANEL_SUPERVISOR_CONFIG_PATH', '/etc/supervisor/conf.d'),
     'mysql_admin_host' => env('BERRYPANEL_MYSQL_ADMIN_HOST', '127.0.0.1'),
     'mysql_admin_port' => (int) env('BERRYPANEL_MYSQL_ADMIN_PORT', 3306),
     'mysql_admin_username' => env('BERRYPANEL_MYSQL_ADMIN_USERNAME', 'root'),

@@ -467,6 +467,12 @@ export default function SiteShowPage() {
                 <Terminal className="size-4" />
                 Open terminal
               </Button>
+              <Button asChild variant="outline" className="h-11 rounded-full">
+                <Link href={`/dashboard/sites/${site.id}/hosting`}>
+                  <ServerCog className="size-4" />
+                  Node.js + Laravel hosting
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
