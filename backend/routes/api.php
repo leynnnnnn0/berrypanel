@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sites/{site}/deployments', [DeploymentController::class, 'index']);
     Route::post('/sites/{site}/deployments', [DeploymentController::class, 'store']);
     Route::get('/sites/{site}/deployments/{deployment}/logs', [DeploymentController::class, 'logs']);
+    Route::post('/sites/{site}/deployments/{deployment}/retry', [DeploymentController::class, 'retry']);
     Route::get('/sites/{site}/terminal/history', [HostingTerminalController::class, 'index']);
     Route::post('/sites/{site}/terminal', [HostingTerminalController::class, 'store']);
     Route::get('/sites/{site}/services', [SiteServiceController::class, 'index']);
