@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { CustomerServiceControls } from "@/components/hosting/customer-service-controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
@@ -43,6 +44,14 @@ type Site = {
 
 type SiteResponse = {
   site: Site;
+};
+
+type Service = {
+  id: number;
+  type: string;
+  name: string;
+  status: string;
+  enabled: boolean;
 };
 
 type SiteCommandResult = {
@@ -211,6 +220,7 @@ export default function SiteShowPage() {
   const [command, setCommand] = useState("");
   const [commandRunning, setCommandRunning] = useState(false);
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
 
   useEffect(() => {
     async function loadSite() {
@@ -218,9 +228,13 @@ export default function SiteShowPage() {
       setError("");
 
       try {
-        const response = await api<SiteResponse>(`/api/sites/${siteId}`);
+        const [response, serviceResponse] = await Promise.all([
+          api<SiteResponse>(`/api/sites/${siteId}`),
+          api<{ services: Service[] }>(`/api/sites/${siteId}/services`),
+        ]);
         setSite(response.site);
         setVariables(response.site.env_variables ?? {});
+        setServices(serviceResponse.services);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load site");
       } finally {
@@ -547,6 +561,18 @@ export default function SiteShowPage() {
             </p>
           </div>
         </section>
+
+        <CustomerServiceControls
+          siteId={siteId}
+          services={services}
+          onChanged={(service) =>
+            setServices((current) =>
+              current.some((item) => item.id === service.id)
+                ? current.map((item) => (item.id === service.id ? service : item))
+                : [service, ...current],
+            )
+          }
+        />
 
         <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
