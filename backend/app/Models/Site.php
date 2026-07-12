@@ -51,4 +51,5 @@ class Site extends Model
     public function deployments(): HasMany { return $this->hasMany(Deployment::class); }
     public function services(): HasMany { return $this->hasMany(SiteService::class); }
     public function environments(): HasMany { return $this->hasMany(SiteEnvironment::class); }
+    public function customDomains(): HasMany { return $this->hasMany(CustomDomain::class); }
 }

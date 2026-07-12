@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process;
 
 class NginxSiteProvisioner
 {
-    public function provision(string $slug, string $host, string $publicPath, string $phpVersion): bool
+    public function provision(string $slug, string $host, string $publicPath, string $phpVersion, array $additionalHosts = []): bool
     {
         if (! (bool) config('berrypanel.nginx_provisioning_enabled')) {
             return false;
@@ -21,7 +21,7 @@ class NginxSiteProvisioner
         $temporaryPath = storage_path("app/berrypanel/nginx/{$configName}");
 
         File::ensureDirectoryExists(dirname($temporaryPath), 0775, true);
-        File::put($temporaryPath, $this->buildServerBlock($host, $publicPath, $phpVersion));
+        File::put($temporaryPath, $this->buildServerBlock($host, $publicPath, $phpVersion, $additionalHosts));
 
         $availablePath = $this->joinPath((string) config('berrypanel.nginx_sites_available_path'), $configName);
         $enabledPath = $this->joinPath((string) config('berrypanel.nginx_sites_enabled_path'), $configName);
@@ -34,14 +34,14 @@ class NginxSiteProvisioner
         return true;
     }
 
-    public function provisionHybrid(string $slug, string $host, string $laravelPublicPath, string $phpVersion, int $nodePort): bool
+    public function provisionHybrid(string $slug, string $host, string $laravelPublicPath, string $phpVersion, int $nodePort, array $additionalHosts = []): bool
     {
         if (! (bool) config('berrypanel.nginx_provisioning_enabled')) return false;
         $this->validateSiteInput($slug, $host, $laravelPublicPath);
         if ($nodePort < 1024 || $nodePort > 65535) throw new RuntimeException('BerryPanel refused to proxy to an invalid Node.js port.');
         $configName = $this->configName($slug); $temporaryPath = storage_path("app/berrypanel/nginx/{$configName}");
         File::ensureDirectoryExists(dirname($temporaryPath), 0775, true);
-        File::put($temporaryPath, $this->buildHybridServerBlock($host, $laravelPublicPath, $phpVersion, $nodePort));
+        File::put($temporaryPath, $this->buildHybridServerBlock($host, $laravelPublicPath, $phpVersion, $nodePort, $additionalHosts));
         $availablePath = $this->joinPath((string) config('berrypanel.nginx_sites_available_path'), $configName);
         $enabledPath = $this->joinPath((string) config('berrypanel.nginx_sites_enabled_path'), $configName);
         $this->run(['sudo','cp',$temporaryPath,$availablePath], 'Unable to install hybrid Nginx site config');
@@ -67,7 +67,7 @@ class NginxSiteProvisioner
         $this->run(['sudo', 'systemctl', 'reload', 'nginx'], 'Unable to reload Nginx after removing site');
     }
 
-    private function buildServerBlock(string $host, string $publicPath, string $phpVersion): string
+    private function buildServerBlock(string $host, string $publicPath, string $phpVersion, array $additionalHosts = []): string
     {
         $socket = (string) config('berrypanel.nginx_php_fpm_socket');
 
@@ -75,10 +75,11 @@ class NginxSiteProvisioner
             $socket = "/run/php/php{$phpVersion}-fpm.sock";
         }
 
+        $hosts = $this->serverNames($host, $additionalHosts);
         return <<<NGINX
 server {
     listen 80;
-    server_name {$host};
+    server_name {$hosts};
 
     root {$publicPath};
     index index.php index.html;
@@ -112,14 +113,15 @@ server {
 NGINX;
     }
 
-    private function buildHybridServerBlock(string $host, string $publicPath, string $phpVersion, int $nodePort): string
+    private function buildHybridServerBlock(string $host, string $publicPath, string $phpVersion, int $nodePort, array $additionalHosts = []): string
     {
         $socket = (string) config('berrypanel.nginx_php_fpm_socket');
         if ($socket === '') $socket = "/run/php/php{$phpVersion}-fpm.sock";
+        $hosts = $this->serverNames($host, $additionalHosts);
         return <<<NGINX
 server {
     listen 80;
-    server_name {$host};
+    server_name {$hosts};
     root {$publicPath};
     index index.php;
 
@@ -169,6 +171,17 @@ NGINX;
         if (! str_starts_with($normalizedPublicPath, rtrim($normalizedRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('BerryPanel refused to create an Nginx config outside the users root.');
         }
+    }
+
+    private function serverNames(string $host, array $additionalHosts): string
+    {
+        $hosts = array_values(array_unique(array_filter([$host, ...$additionalHosts])));
+        foreach ($hosts as $candidate) {
+            if (! is_string($candidate) || ! preg_match('/^[a-z0-9.-]+$/', $candidate)) {
+                throw new RuntimeException('BerryPanel refused to create an Nginx config for an unsafe domain.');
+            }
+        }
+        return implode(' ', $hosts);
     }
 
     private function configName(string $slug): string

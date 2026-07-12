@@ -40,6 +40,11 @@ const mainNavItems: NavItem[] = [
     icon: Blocks,
   },
   {
+    title: "Domains",
+    href: "/dashboard/domains",
+    icon: Globe2,
+  },
+  {
     title: "Databases",
     href: "/dashboard/databases",
     icon: Database,

@@ -42,4 +42,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(HostingDatabase::class);
     }
+
+    public function customDomains(): HasMany
+    {
+        return $this->hasMany(CustomDomain::class);
+    }
 }
