@@ -13,7 +13,8 @@ class CloudflareCustomHostnameService
     {
         return $this->request()->post($this->endpoint(), [
             'hostname' => $hostname,
-            'ssl' => ['method' => 'txt'],
+            // Cloudflare requires domain validation to be explicit for new custom hostnames.
+            'ssl' => ['method' => 'txt', 'type' => 'dv'],
         ])->throw()->json('result');
     }
 
