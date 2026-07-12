@@ -12,6 +12,7 @@ return [
     'nginx_sites_available_path' => env('BERRYPANEL_NGINX_SITES_AVAILABLE_PATH', '/etc/nginx/sites-available'),
     'nginx_sites_enabled_path' => env('BERRYPANEL_NGINX_SITES_ENABLED_PATH', '/etc/nginx/sites-enabled'),
     'nginx_php_fpm_socket' => env('BERRYPANEL_NGINX_PHP_FPM_SOCKET', '/run/php/php8.4-fpm.sock'),
+    'php_fpm_user' => env('BERRYPANEL_PHP_FPM_USER', 'www-data'),
     'ssh_provisioning_enabled' => (bool) env('BERRYPANEL_SSH_PROVISIONING_ENABLED', false),
     'ssh_host' => env('BERRYPANEL_SSH_HOST'),
     'ssh_port' => (int) env('BERRYPANEL_SSH_PORT', 22),

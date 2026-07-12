@@ -232,9 +232,50 @@ class SiteProvisioner
             if ($permissionWarning !== null) {
                 $warnings[] = $permissionWarning;
             }
+
+            $aclWarning = $this->grantPhpFpmWriteAccess($permissionPaths, $siteRoot);
+
+            if ($aclWarning !== null) {
+                $warnings[] = $aclWarning;
+            }
         }
 
         return $warnings;
+    }
+
+    private function grantPhpFpmWriteAccess(array $paths, string $workingDirectory): ?string
+    {
+        $phpFpmUser = trim((string) config('berrypanel.php_fpm_user', 'www-data'));
+
+        if (! preg_match('/^[a-z_][a-z0-9_-]*$/i', $phpFpmUser)) {
+            return 'Laravel runtime permissions could not be prepared because the PHP-FPM user configuration is invalid.';
+        }
+
+        foreach ($paths as $path) {
+            $warning = $this->runCommand(
+                ['find', $path, '-type', 'd', '-exec', 'setfacl', '-m', "u:{$phpFpmUser}:rwX,d:u:{$phpFpmUser}:rwX", '{}', '+'],
+                $workingDirectory,
+                'Laravel PHP-FPM write permission update failed',
+                allowFailure: true,
+            );
+
+            if ($warning !== null) {
+                return $warning;
+            }
+
+            $warning = $this->runCommand(
+                ['setfacl', '-R', '-m', "u:{$phpFpmUser}:rwX", $path],
+                $workingDirectory,
+                'Laravel PHP-FPM write permission update failed',
+                allowFailure: true,
+            );
+
+            if ($warning !== null) {
+                return $warning;
+            }
+        }
+
+        return null;
     }
 
     private function applyStarterRuntimeDefaults(string $siteRoot, ?string $appUrl = null): void

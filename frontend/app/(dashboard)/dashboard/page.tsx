@@ -52,15 +52,15 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 const deploySteps = [
   {
     label: "Preparing workspace",
-    body: "Creating the Linux user site folder and permissions.",
+    body: "Preparing your application workspace.",
   },
   {
     label: "Cloning repository",
     body: "Pulling the public GitHub repository and selected branch.",
   },
   {
-    label: "Creating Laravel folders",
-    body: "Ensuring public, storage, logs, and backup paths exist.",
+    label: "Preparing application storage",
+    body: "Setting up the files and settings your application needs.",
   },
   {
     label: "Installing PHP dependencies",
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                   </h1>
                   <p className="mt-5 max-w-xl text-lg leading-6 text-[#666]">
                     Manage your Laravel sites, deployments, domains, databases,
-                    and server access from one focused panel.
+                    and account access from one focused panel.
                   </p>
                 </div>
                 <Button
@@ -399,7 +399,7 @@ export default function DashboardPage() {
               {!loadingSites && visibleSites.length === 0 && (
                 <div className="border-t border-black/5 px-5 py-6 text-sm text-[#777]">
                   No Laravel sites yet. Create your first site to provision its
-                  Linux folder.
+                  application workspace.
                 </div>
               )}
 
@@ -528,13 +528,13 @@ export default function DashboardPage() {
               <div className="mt-4 space-y-3">
                 {loadingUsage && (
                   <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
-                    Scanning site folders...
+                    Checking application storage...
                   </div>
                 )}
 
                 {!loadingUsage && siteStorage.length === 0 && (
                   <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
-                    No site folders found for this workspace yet.
+                    No hosted applications found yet.
                   </div>
                 )}
 
@@ -558,7 +558,7 @@ export default function DashboardPage() {
                     </div>
                     {!site.exists && (
                       <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-[#8a6810]">
-                        Folder missing on the server.
+                        Application files need attention. Contact support if this persists.
                       </p>
                     )}
                   </div>
@@ -592,8 +592,8 @@ export default function DashboardPage() {
                     New Laravel Site
                   </DialogTitle>
                   <DialogDescription className="max-w-md text-[#4f4960]">
-                    BerryPanel will create the site folder and pull the public
-                    GitHub repository into your Raspberry Pi workspace.
+                    BerryPanel will prepare your application and connect your public
+                    GitHub repository.
                   </DialogDescription>
                 </DialogHeader>
               </div>
@@ -696,7 +696,7 @@ export default function DashboardPage() {
                   />
                   <p className="text-xs leading-5 text-[#777]">
                     Use letters, numbers, spaces, or hyphens. We will convert it
-                    into a safe folder name.
+                    into a safe application name.
                   </p>
                 </div>
 
@@ -752,7 +752,7 @@ export default function DashboardPage() {
                     <p>8.4</p>
                   </div>
                   <div>
-                    <p className="font-medium text-[#151515]">Folders</p>
+                    <p className="font-medium text-[#151515]">Included</p>
                     <p>public, storage, logs</p>
                   </div>
                 </div>

@@ -8,11 +8,9 @@ import {
   Code2,
   Database,
   FileCode2,
-  GitBranch,
   Globe2,
   HardDrive,
   LockKeyhole,
-  Server,
   ShieldCheck,
   TerminalSquare,
 } from "lucide-react";
@@ -64,7 +62,7 @@ const stackCards = [
 const runtimeChecklist = [
   {
     title: "Repository cloned",
-    description: "The GitHub repository exists inside the site folder.",
+    description: "Your repository is connected and ready to deploy.",
   },
   {
     title: "Dependencies installed",
@@ -123,7 +121,7 @@ function StartHereTab() {
       <GuideSection
         eyebrow="Overview"
         title="What BerryPanel does for a Laravel site"
-        description="BerryPanel is a shared-hosting control panel for your Raspberry Pi. It turns a public GitHub repository into an isolated Laravel site folder, database connection, Nginx route, and public URL."
+        description="BerryPanel helps you publish and manage your Laravel applications from one secure workspace."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stackCards.map((card) => (
@@ -274,7 +272,7 @@ function DomainsTab() {
       <GuideSection
         eyebrow="Public routing"
         title="How HTTPS and wildcard domains reach the Pi"
-        description="Cloudflare handles the public HTTPS edge. The tunnel forwards traffic to Nginx on the Raspberry Pi, then Nginx serves the right site by hostname."
+        description="BerryPanel automatically prepares a secure public address for each hosted application."
       >
         <div className="grid gap-4 lg:grid-cols-3">
           {domainGuides.map((item) => (
@@ -297,30 +295,25 @@ function DomainsTab() {
       </GuideSection>
 
       <GuideSection
-        eyebrow="Cloudflare"
-        title="Required tunnel routes"
-        description="These routes keep public users away from the Pi IP and avoid creating one DNS record per hosted site."
+        eyebrow="Domains"
+        title="Your application address"
+        description="Your generated address is ready after deployment. Connect a custom domain from domain settings when available."
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <InfoCard className="space-y-4 border-[#d8ccf4] bg-[#f5f1ff]">
             <h3 className="text-xl font-semibold text-neutral-950">
-              Customer site wildcard
+              Automatic address
             </h3>
-            <CommandBlock command="*.sites.capstoneprototype.online -> http://localhost:80" />
             <p className="text-sm leading-6 text-neutral-700">
-              This single wildcard route lets new customer sites work without
-              adding a new DNS record every time.
+              BerryPanel assigns an address for your application automatically.
             </p>
           </InfoCard>
           <InfoCard className="space-y-4">
             <h3 className="text-xl font-semibold text-neutral-950">
-              Panel and API routes
+              Custom domains
             </h3>
-            <CommandBlock command="capstoneprototype.online -> http://localhost:3000" />
-            <CommandBlock command="api.capstoneprototype.online -> http://localhost:8000" />
             <p className="text-sm leading-6 text-neutral-700">
-              The frontend must call the public API hostname in production, not
-              192.168.x.x.
+              Contact support if you need help connecting or verifying a custom domain.
             </p>
           </InfoCard>
         </div>
@@ -381,7 +374,7 @@ function ErrorTab() {
     <GuideSection
       eyebrow="Troubleshooting"
       title="Paste an error and get the next step"
-      description="This helper is based on the real issues we hit while bringing BerryPanel online: Vite, Composer, APP_KEY, migrations, DNS, Cloudflare, CORS, and permissions."
+      description="Paste an application error to see practical next steps for resolving it."
     >
       <ErrorHelper />
     </GuideSection>
@@ -430,9 +423,8 @@ export function HostingGuideTabs() {
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold">When in doubt, read the log first</h2>
           <p className="max-w-4xl text-sm leading-6 text-neutral-300">
-            A browser 500 page only says the request failed. The Laravel log
-            usually says why. Paste the log text into the Error helper before
-            changing random settings.
+            Deployment and application logs usually explain what needs attention.
+            Review the message, then follow the suggested next step.
           </p>
           <CommandBlock command="tail -n 80 storage/logs/laravel.log" />
         </div>

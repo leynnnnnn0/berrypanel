@@ -36,9 +36,8 @@ export function ErrorHelper() {
             Paste the error exactly as shown
           </h3>
           <p className="text-sm leading-6 text-neutral-600">
-            Copy from the browser error page, Laravel log, Nginx log, terminal,
-            or Network tab. BerryPanel checks common deployment patterns and
-            explains the next step.
+            Paste a browser, deployment, or application error message here.
+            BerryPanel will suggest the next step.
           </p>
         </div>
 
@@ -84,7 +83,7 @@ export function ErrorHelper() {
             <p className="text-sm leading-6 text-neutral-600">
               Use this before guessing. Most hosting issues fall into a few
               categories: missing app key, wrong database credentials, missing
-              Vite dependencies, storage permissions, or DNS/tunnel routing.
+              application dependencies, configuration, storage, or domain setup.
             </p>
           </InfoCard>
         )}
@@ -125,7 +124,7 @@ export function ErrorHelper() {
                   ) : (
                     <Server className="h-3.5 w-3.5" />
                   )}
-                  {match.owner === "customer" ? "Site action" : "Server action"}
+                  {match.owner === "customer" ? "What you can do" : "Contact support"}
                 </span>
               </div>
 

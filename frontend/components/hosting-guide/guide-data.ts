@@ -31,19 +31,19 @@ export type ErrorPlaybook = {
   cause: string;
   fixes: string[];
   commands?: string[];
-  owner: "you" | "support";
+  owner: "customer" | "support";
 };
 
 export const guideTabs: GuideTab[] = [
   {
     id: "start",
     label: "Start here",
-    summary: "What BerryPanel creates and what your repository needs.",
+    summary: "Prepare your project for a smooth deployment.",
   },
   {
     id: "deploy",
     label: "Deploy Laravel",
-    summary: "The full path from GitHub URL to a working public site.",
+    summary: "From GitHub to a live application.",
   },
   {
     id: "commands",
@@ -63,7 +63,7 @@ export const guideTabs: GuideTab[] = [
   {
     id: "limits",
     label: "Limits & safety",
-    summary: "Storage, terminal, database, and account boundaries.",
+    summary: "Understand account limits and safe tools.",
   },
 ];
 
@@ -222,7 +222,7 @@ export const errorPlaybooks: ErrorPlaybook[] = [
       "npm install --include=dev --production=false --no-audit --no-fund",
       "npm run build",
     ],
-    owner: "you",
+    owner: "customer",
   },
   {
     id: "composer-home",
@@ -254,7 +254,7 @@ export const errorPlaybooks: ErrorPlaybook[] = [
       "Do not leave APP_KEY blank when saving environment settings.",
     ],
     commands: ["php artisan key:generate --force", "php artisan optimize:clear"],
-    owner: "you",
+    owner: "customer",
   },
   {
     id: "sessions-table",
@@ -267,7 +267,7 @@ export const errorPlaybooks: ErrorPlaybook[] = [
       "If you prefer file sessions for simple sites, set SESSION_DRIVER=file and clear config.",
     ],
     commands: ["php artisan migrate --force", "php artisan optimize:clear"],
-    owner: "you",
+    owner: "customer",
   },
   {
     id: "log-permission",
@@ -294,7 +294,7 @@ export const errorPlaybooks: ErrorPlaybook[] = [
       "Run migrations after the connection works.",
     ],
     commands: ["php artisan optimize:clear", "php artisan migrate --force"],
-    owner: "you",
+    owner: "customer",
   },
   {
     id: "missing-driver",

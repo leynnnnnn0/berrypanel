@@ -346,8 +346,8 @@ export default function SshAccessPage() {
           <div className="flex items-start gap-3">
             <Terminal className="mt-1 size-5 shrink-0" />
             <p className="text-sm leading-6 text-[#5f5223]">
-              Your friends only need this page: create a key, paste the public
-              key, copy the SSH command, then run their Laravel commands.
+              To connect, create a key, add the public key, copy the SSH command,
+              then run the commands your application needs.
             </p>
           </div>
         </section>

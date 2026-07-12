@@ -19,14 +19,12 @@ import {
 import { api } from "@/lib/api";
 import {
   ArrowUpRight,
-  Copy,
   ExternalLink,
   GitBranch,
   GitFork,
   Globe2,
   MoreHorizontal,
   Plus,
-  ServerCog,
   Terminal,
   Trash2,
 } from "lucide-react";
@@ -40,8 +38,6 @@ type Site = {
   stack: string;
   php_version: string;
   status: string;
-  root_path: string;
-  public_path: string;
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
@@ -150,10 +146,6 @@ export default function SitesPage() {
     }
   }
 
-  async function copyText(value: string) {
-    await navigator.clipboard.writeText(value);
-  }
-
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
       <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
@@ -167,8 +159,8 @@ export default function SitesPage() {
                 Laravel Sites
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-6 text-[#666]">
-                Manage every hosted Laravel/Inertia app, its public GitHub
-                repository, branch, local domain, and provisioned folder paths.
+                Manage your hosted Laravel applications, repository, branch,
+                domain, and deployment status.
               </p>
             </div>
 
@@ -213,12 +205,11 @@ export default function SitesPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-black/5">
-            <div className="hidden grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.85fr_0.45fr] bg-[#f7f7f7] px-5 py-3 text-xs font-medium uppercase text-[#777] lg:grid">
+            <div className="hidden grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] bg-[#f7f7f7] px-5 py-3 text-xs font-medium uppercase text-[#777] lg:grid">
               <span>Site</span>
               <span>GitHub</span>
               <span>Domain</span>
               <span>Status</span>
-              <span>Server Path</span>
               <span>Actions</span>
             </div>
 
@@ -238,7 +229,7 @@ export default function SitesPage() {
               sites.map((site, index) => (
                 <div
                   key={site.id}
-                  className="flex flex-col gap-4 border-t border-black/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.85fr_0.45fr] lg:items-center"
+                  className="flex flex-col gap-4 border-t border-black/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] lg:items-center"
                 >
                   <div className="flex items-center gap-3">
                     <span
@@ -290,11 +281,6 @@ export default function SitesPage() {
                     </span>
                   </div>
 
-                  <span className="flex min-w-0 items-center gap-2 text-[#555]">
-                    <ServerCog className="size-4 shrink-0" />
-                    <span className="truncate">{site.root_path}</span>
-                  </span>
-
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
@@ -335,12 +321,6 @@ export default function SitesPage() {
                             </a>
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onSelect={() => copyText(site.root_path)}
-                        >
-                          <Copy className="size-4" />
-                          Copy root path
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
@@ -367,15 +347,9 @@ export default function SitesPage() {
               <span className="font-medium text-[#151515]">
                 {siteToDelete?.name}
               </span>{" "}
-              from BerryPanel and delete its provisioned site folder. This
-              action cannot be undone.
+              from BerryPanel. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#555]">
-            <p className="font-medium text-[#151515]">Folder to delete</p>
-            <p className="mt-2 break-words">{siteToDelete?.root_path}</p>
-          </div>
 
           <DialogFooter>
             <Button

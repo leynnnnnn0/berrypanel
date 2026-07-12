@@ -17,7 +17,7 @@ const highlights = [
   {
     title: "Production boundaries",
     description:
-      "Understand domains, Cloudflare, storage limits, safe commands, and what still needs server action.",
+      "Understand domains, storage limits, safe commands, and application support.",
     icon: BookOpen,
   },
 ];
@@ -39,8 +39,8 @@ export default function HostingGuidePage() {
                 <p className="max-w-3xl text-lg leading-8 text-neutral-600">
                   Everything customers need to launch and maintain Laravel sites
                   on BerryPanel: repository requirements, deployment steps,
-                  accepted terminal commands, domain routing, and fixes for the
-                  errors they are most likely to hit.
+                  accepted maintenance commands, domain guidance, and fixes for
+                  common deployment issues.
                 </p>
               </div>
             </div>

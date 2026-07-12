@@ -7,7 +7,6 @@ import { api } from "@/lib/api";
 import {
   ArrowLeft,
   CheckCircle2,
-  Copy,
   Database,
   ExternalLink,
   FileKey2,
@@ -23,7 +22,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type EnvVariables = Record<string, string>;
 
@@ -34,8 +33,6 @@ type Site = {
   stack: string;
   php_version: string;
   status: string;
-  root_path: string;
-  public_path: string;
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
@@ -236,10 +233,6 @@ export default function SiteShowPage() {
     }
   }, [siteId]);
 
-  const envPreviewPath = useMemo(
-    () => (site ? `${site.root_path}/.env` : ""),
-    [site],
-  );
 
   function setVariable(key: string, value: string) {
     setVariables((current) => ({ ...current, [key]: value }));
@@ -296,10 +289,6 @@ export default function SiteShowPage() {
     } finally {
       setClearingWarnings(false);
     }
-  }
-
-  async function copyText(value: string) {
-    await navigator.clipboard.writeText(value);
   }
 
   function appendTerminalLine(kind: TerminalLine["kind"], text: string) {
@@ -426,8 +415,8 @@ export default function SiteShowPage() {
                 {site.name}
               </h1>
               <p className="mt-5 max-w-3xl text-lg leading-6 text-[#666]">
-                Manage the Laravel environment credentials BerryPanel writes to
-                this site folder on your Raspberry Pi server.
+                Manage your application settings, deployment status, and
+                database connection.
               </p>
             </div>
 
@@ -565,35 +554,10 @@ export default function SiteShowPage() {
               <FileKey2 className="size-6" />
               <h2 className="text-2xl font-semibold">Environment file</h2>
             </div>
-            <div className="mt-6 grid gap-4">
-              <div className="rounded-2xl border border-black/5 bg-[#f7f7f7] p-4">
-                <p className="text-xs font-medium uppercase text-[#888]">
-                  Writes to
-                </p>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="break-all font-mono text-sm text-[#333]">
-                    {envPreviewPath}
-                  </p>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="shrink-0 rounded-full"
-                    onClick={() => copyText(envPreviewPath)}
-                  >
-                    <Copy className="size-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-black/5 bg-[#f7f7f7] p-4">
-                <p className="text-xs font-medium uppercase text-[#888]">
-                  Public path
-                </p>
-                <p className="mt-2 break-all font-mono text-sm text-[#333]">
-                  {site.public_path}
-                </p>
-              </div>
-            </div>
+            <p className="mt-4 text-sm leading-6 text-[#666]">
+              Your values are stored securely and are available only to this
+              application.
+            </p>
           </div>
 
           <div className="rounded-3xl bg-[#d8cef2] p-6 shadow-sm lg:p-8">
@@ -603,8 +567,7 @@ export default function SiteShowPage() {
             <h2 className="mt-2 text-2xl font-semibold">GitHub deploy source</h2>
             <p className="mt-3 text-sm leading-6 text-[#4f4861]">
               BerryPanel uses the public repository connected during site
-              creation. The deploy flow will pull this branch into the site
-              folder.
+              creation. Future deployments use the selected branch.
             </p>
             {site.repository_url && (
               <Button
@@ -662,8 +625,7 @@ export default function SiteShowPage() {
           <div className="mx-auto flex max-w-[1500px] flex-col gap-3 rounded-3xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <span className="inline-flex items-center gap-2 text-sm text-[#666]">
               <CheckCircle2 className="size-4 text-[#7a5cff]" />
-              Changes are saved to BerryPanel and written to the server .env
-              file.
+              Changes are saved securely for this application.
             </span>
             <Button
               type="button"
