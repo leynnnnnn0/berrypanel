@@ -86,10 +86,41 @@ class SiteCommandRunner
         ];
 
         if (! array_key_exists($input, $commands)) {
-            throw new RuntimeException('That command is not allowed in this console.');
+            return $this->artisanCommand($input);
         }
 
         return $commands[$input];
+    }
+
+    private function artisanCommand(string $input): array
+    {
+        if (! str_starts_with($input, 'php artisan ')) {
+            throw new RuntimeException('That command is not available in this console.');
+        }
+
+        if (preg_match('/[;&|`<>\n\r]|\$\(|\.\.\//', $input)) {
+            throw new RuntimeException('Shell chaining, substitution, redirection, and directory traversal are not allowed.');
+        }
+
+        $arguments = preg_split('/\s+/', $input) ?: [];
+
+        if (count($arguments) < 3 || ! preg_match('/^[a-z][a-z0-9:_-]*$/i', $arguments[2])) {
+            throw new RuntimeException('Enter a valid Laravel Artisan command.');
+        }
+
+        foreach (array_slice($arguments, 3) as $argument) {
+            if (! preg_match('/^[-a-zA-Z0-9_.,:=\/]+$/', $argument)) {
+                throw new RuntimeException('Artisan command arguments can only contain safe letters, numbers, and option characters.');
+            }
+        }
+
+        $longRunning = ['queue:work', 'queue:listen', 'horizon', 'reverb:start', 'schedule:work', 'serve', 'tinker'];
+
+        if (in_array($arguments[2], $longRunning, true)) {
+            throw new RuntimeException('This is a persistent application service. Enable it from Keep your application running instead.');
+        }
+
+        return $arguments;
     }
 
     private function validatedSiteRoot(Site $site): string

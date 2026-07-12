@@ -320,7 +320,7 @@ export default function SiteShowPage() {
         {
           id: Date.now(),
           kind: "system",
-          text: `Connected to ${site.slug}. Type approved Laravel commands here. Examples: php artisan migrate --force, php artisan key:generate --force, npm run build, composer install, git pull origin ${site.repository_branch || "main"}.`,
+          text: `Connected to ${site.slug}. Run Laravel Artisan maintenance commands here. Persistent features such as background jobs, realtime updates, and scheduled tasks are managed from Keep your application running.`,
         },
       ]);
     }
