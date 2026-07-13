@@ -54,6 +54,38 @@ test('a user can save site environment variables to the provisioned env file', f
     expect($site->refresh()->env_variables['DB_USERNAME'])->toBe('demo_user');
 });
 
+test('saving environment values preserves the existing env file access mode', function () {
+    $usersRoot = storage_path('framework/testing/berrypanel-users-env-permissions');
+    $siteRoot = "{$usersRoot}/user_1/sites/demo-site";
+    File::deleteDirectory($usersRoot);
+    File::ensureDirectoryExists($siteRoot, 0775, true);
+    File::put("{$siteRoot}/.env", "APP_NAME=Demo Site\n");
+    chmod("{$siteRoot}/.env", 0640);
+    config(['berrypanel.users_root' => $usersRoot]);
+
+    $user = User::factory()->create(['linux_username' => 'user_1']);
+    $site = Site::create([
+        'user_id' => $user->id,
+        'name' => 'Demo Site',
+        'slug' => 'demo-site',
+        'stack' => 'Laravel / Inertia',
+        'php_version' => '8.4',
+        'status' => 'provisioned',
+        'root_path' => $siteRoot,
+        'public_path' => "{$siteRoot}/public",
+        'local_url' => 'demo-site.berrypanel.local',
+        'repository_url' => 'https://github.com/example/demo-site',
+        'repository_branch' => 'main',
+    ]);
+
+    $this->actingAs($user)->putJson("/api/sites/{$site->id}/env", [
+        'variables' => ['APP_NAME' => 'Updated Site'],
+    ])->assertOk();
+
+    clearstatcache(true, "{$siteRoot}/.env");
+    expect(fileperms("{$siteRoot}/.env") & 0777)->toBe(0640);
+});
+
 test('a user can see the app key from the server env file', function () {
     $usersRoot = storage_path('framework/testing/berrypanel-users-env-show');
     $siteRoot = "{$usersRoot}/user_1/sites/demo-site";
