@@ -20,6 +20,7 @@ return [
     'supervisor_enabled' => filter_var(env('BERRYPANEL_SUPERVISOR_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
     'supervisor_config_path' => env('BERRYPANEL_SUPERVISOR_CONFIG_PATH', '/etc/supervisor/conf.d'),
     'node_port_base' => (int) env('BERRYPANEL_NODE_PORT_BASE', 12000),
+    'reverb_port_base' => (int) env('BERRYPANEL_REVERB_PORT_BASE', 13000),
     'cloudflare_api_token' => env('CLOUDFLARE_API_TOKEN'),
     'cloudflare_zone_id' => env('CLOUDFLARE_ZONE_ID'),
     'cloudflare_fallback_origin' => env('CLOUDFLARE_FALLBACK_ORIGIN'),

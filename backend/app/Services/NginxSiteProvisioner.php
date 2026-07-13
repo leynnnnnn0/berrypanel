@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process;
 
 class NginxSiteProvisioner
 {
-    public function provision(string $slug, string $host, string $publicPath, string $phpVersion, array $additionalHosts = []): bool
+    public function provision(string $slug, string $host, string $publicPath, string $phpVersion, array $additionalHosts = [], ?int $reverbPort = null): bool
     {
         if (! (bool) config('berrypanel.nginx_provisioning_enabled')) {
             return false;
@@ -21,7 +21,7 @@ class NginxSiteProvisioner
         $temporaryPath = storage_path("app/berrypanel/nginx/{$configName}");
 
         File::ensureDirectoryExists(dirname($temporaryPath), 0775, true);
-        File::put($temporaryPath, $this->buildServerBlock($host, $publicPath, $phpVersion, $additionalHosts));
+        File::put($temporaryPath, $this->buildServerBlock($host, $publicPath, $phpVersion, $additionalHosts, $reverbPort));
 
         $availablePath = $this->joinPath((string) config('berrypanel.nginx_sites_available_path'), $configName);
         $enabledPath = $this->joinPath((string) config('berrypanel.nginx_sites_enabled_path'), $configName);
@@ -34,14 +34,14 @@ class NginxSiteProvisioner
         return true;
     }
 
-    public function provisionHybrid(string $slug, string $host, string $laravelPublicPath, string $phpVersion, int $nodePort, array $additionalHosts = []): bool
+    public function provisionHybrid(string $slug, string $host, string $laravelPublicPath, string $phpVersion, int $nodePort, array $additionalHosts = [], ?int $reverbPort = null): bool
     {
         if (! (bool) config('berrypanel.nginx_provisioning_enabled')) return false;
         $this->validateSiteInput($slug, $host, $laravelPublicPath);
         if ($nodePort < 1024 || $nodePort > 65535) throw new RuntimeException('BerryPanel refused to proxy to an invalid Node.js port.');
         $configName = $this->configName($slug); $temporaryPath = storage_path("app/berrypanel/nginx/{$configName}");
         File::ensureDirectoryExists(dirname($temporaryPath), 0775, true);
-        File::put($temporaryPath, $this->buildHybridServerBlock($host, $laravelPublicPath, $phpVersion, $nodePort, $additionalHosts));
+        File::put($temporaryPath, $this->buildHybridServerBlock($host, $laravelPublicPath, $phpVersion, $nodePort, $additionalHosts, $reverbPort));
         $availablePath = $this->joinPath((string) config('berrypanel.nginx_sites_available_path'), $configName);
         $enabledPath = $this->joinPath((string) config('berrypanel.nginx_sites_enabled_path'), $configName);
         $this->run(['sudo','cp',$temporaryPath,$availablePath], 'Unable to install hybrid Nginx site config');
@@ -67,7 +67,7 @@ class NginxSiteProvisioner
         $this->run(['sudo', 'systemctl', 'reload', 'nginx'], 'Unable to reload Nginx after removing site');
     }
 
-    private function buildServerBlock(string $host, string $publicPath, string $phpVersion, array $additionalHosts = []): string
+    private function buildServerBlock(string $host, string $publicPath, string $phpVersion, array $additionalHosts = [], ?int $reverbPort = null): string
     {
         $socket = (string) config('berrypanel.nginx_php_fpm_socket');
 
@@ -76,6 +76,7 @@ class NginxSiteProvisioner
         }
 
         $hosts = $this->serverNames($host, $additionalHosts);
+        $reverb = $this->reverbLocations($reverbPort);
         return <<<NGINX
 server {
     listen 80;
@@ -88,6 +89,8 @@ server {
     add_header X-Content-Type-Options "nosniff";
 
     charset utf-8;
+
+{$reverb}
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
@@ -113,17 +116,20 @@ server {
 NGINX;
     }
 
-    private function buildHybridServerBlock(string $host, string $publicPath, string $phpVersion, int $nodePort, array $additionalHosts = []): string
+    private function buildHybridServerBlock(string $host, string $publicPath, string $phpVersion, int $nodePort, array $additionalHosts = [], ?int $reverbPort = null): string
     {
         $socket = (string) config('berrypanel.nginx_php_fpm_socket');
         if ($socket === '') $socket = "/run/php/php{$phpVersion}-fpm.sock";
         $hosts = $this->serverNames($host, $additionalHosts);
+        $reverb = $this->reverbLocations($reverbPort);
         return <<<NGINX
 server {
     listen 80;
     server_name {$hosts};
     root {$publicPath};
     index index.php;
+
+{$reverb}
 
     location / {
         proxy_pass http://127.0.0.1:{$nodePort};
@@ -182,6 +188,36 @@ NGINX;
             }
         }
         return implode(' ', $hosts);
+    }
+
+    private function reverbLocations(?int $port): string
+    {
+        if (! $port) return '';
+        if ($port < 1024 || $port > 65535) throw new RuntimeException('BerryPanel refused to proxy to an invalid Reverb port.');
+        return <<<NGINX
+    location ^~ /app/ {
+        proxy_pass http://127.0.0.1:{$port};
+        proxy_http_version 1.1;
+        proxy_set_header Host \$http_host;
+        proxy_set_header Scheme \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
+    }
+
+    location ^~ /apps/ {
+        proxy_pass http://127.0.0.1:{$port};
+        proxy_http_version 1.1;
+        proxy_set_header Host \$http_host;
+        proxy_set_header Scheme \$scheme;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+NGINX;
     }
 
     private function configName(string $slug): string

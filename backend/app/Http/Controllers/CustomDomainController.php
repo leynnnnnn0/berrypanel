@@ -83,8 +83,8 @@ class CustomDomainController extends Controller
     private function provisionSite(Site $site, NginxSiteProvisioner $nginx): void
     {
         $domains = $site->customDomains()->where('status', 'active')->pluck('hostname')->all();
-        if ($site->stack === 'node_laravel') $nginx->provisionHybrid($site->slug, $site->domain, $site->public_path, $site->php_version, (int) $site->node_port, $domains);
-        else $nginx->provision($site->slug, $site->domain, $site->public_path, $site->php_version, $domains);
+        if ($site->stack === 'node_laravel') $nginx->provisionHybrid($site->slug, $site->domain, $site->public_path, $site->php_version, (int) $site->node_port, $domains, $site->reverb_port);
+        else $nginx->provision($site->slug, $site->domain, $site->public_path, $site->php_version, $domains, $site->reverb_port);
     }
 
     private function isActive(array $result): bool { return data_get($result, 'status') === 'active' && data_get($result, 'ssl.status') === 'active'; }
