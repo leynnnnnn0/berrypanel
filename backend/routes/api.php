@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sites/{site}/terminal', [HostingTerminalController::class, 'store']);
     Route::get('/sites/{site}/services', [SiteServiceController::class, 'index']);
     Route::post('/sites/{site}/services', [SiteServiceController::class, 'store']);
+    Route::post('/sites/{site}/additional-node-services', [SiteServiceController::class, 'storeAdditionalNode']);
     Route::post('/sites/{site}/services/templates/{template}', [SiteServiceController::class, 'provisionTemplate']);
     Route::post('/sites/{site}/services/{service}/actions', [SiteServiceController::class, 'action']);
     Route::get('/databases', [HostingDatabaseController::class, 'index']);
