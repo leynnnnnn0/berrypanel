@@ -15,6 +15,7 @@ class RestrictedCommandExecutor
         private SecretRedactor $redactor,
         private EnvironmentManager $env,
         private SupervisorManager $supervisor,
+        private ToolEnvironment $tools,
     ) {}
 
     public function run(Site $site, User $user, string $input, string $scope, bool $confirmed = false): array
@@ -41,7 +42,7 @@ class RestrictedCommandExecutor
         $relative = $scope === 'node' ? $site->frontend_directory : ($scope === 'root' ? '/' : $site->backend_directory);
         $cwd = $this->paths->directory($site, $relative);
         $start = microtime(true);
-        $process = new Process($map[$input], $cwd);
+        $process = new Process($map[$input], $cwd, $this->tools->variables());
         $process->setTimeout(300);
         $process->setIdleTimeout(60);
         $process->run();
