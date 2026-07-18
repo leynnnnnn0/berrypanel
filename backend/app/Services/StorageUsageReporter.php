@@ -14,7 +14,13 @@ class StorageUsageReporter
 {
     public function forUser(User $user): array
     {
-        $quotaBytes = (int) round(max(0.1, (float) config('berrypanel.storage_quota_gb', 1.2)) * 1024 * 1024 * 1024);
+        $subscription = $user->billingSubscription()->with('plan')->first();
+        $hasPaidPlan = $subscription !== null
+            && $subscription->status === 'active'
+            && $subscription->current_period_end->isFuture();
+        $quotaBytes = $hasPaidPlan
+            ? $subscription->plan->storage_bytes
+            : (int) round(max(0.1, (float) config('berrypanel.storage_quota_gb', 1.2)) * 1024 * 1024 * 1024);
         $siteModels = $user->sites()->latest()->get();
 
         $sites = $siteModels
@@ -31,6 +37,7 @@ class StorageUsageReporter
         return [
             'total_bytes' => $totalBytes,
             'quota_bytes' => $quotaBytes,
+            'plan' => $hasPaidPlan ? $subscription->plan->name : null,
             'percent' => min(100, round(($totalBytes / $quotaBytes) * 100, 1)),
             'file_count' => $fileCount,
             'directory_count' => $directoryCount,

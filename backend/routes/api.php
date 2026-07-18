@@ -1,18 +1,20 @@
 <?php
 
-use App\Http\Controllers\HostingDatabaseController;
-use App\Http\Controllers\SiteCommandController;
-use App\Http\Controllers\SiteController;
-use App\Http\Controllers\SiteDeploymentWarningController;
-use App\Http\Controllers\SshAccessController;
-use App\Http\Controllers\UsageController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\CustomDomainController;
 use App\Http\Controllers\DeploymentController;
+use App\Http\Controllers\HostingDatabaseController;
 use App\Http\Controllers\HostingEnvironmentController;
 use App\Http\Controllers\HostingProjectController;
 use App\Http\Controllers\HostingTerminalController;
-use App\Http\Controllers\SiteServiceController;
 use App\Http\Controllers\HybridHostingProjectController;
-use App\Http\Controllers\CustomDomainController;
+use App\Http\Controllers\PaymongoWebhookController;
+use App\Http\Controllers\SiteCommandController;
+use App\Http\Controllers\SiteController;
+use App\Http\Controllers\SiteDeploymentWarningController;
+use App\Http\Controllers\SiteServiceController;
+use App\Http\Controllers\SshAccessController;
+use App\Http\Controllers\UsageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
@@ -30,6 +32,10 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('throttle:6,1')
     ->name('password.reset');
 
+Route::post('/paymongo/webhook', PaymongoWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('paymongo.webhook');
+
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('throttle:login')
     ->name('api.login');
@@ -44,6 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
         $request->user()->only('id', 'name', 'email', 'linux_username')
     ));
     Route::get('/usage', [UsageController::class, 'show']);
+    Route::get('/billing', [BillingController::class, 'show']);
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
     Route::get('/sites', [SiteController::class, 'index']);
     Route::get('/node-laravel-hosting', [HybridHostingProjectController::class, 'index']);
     Route::post('/node-laravel-hosting', [HybridHostingProjectController::class, 'store']);

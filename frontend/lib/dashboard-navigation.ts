@@ -1,6 +1,7 @@
 import {
   Blocks,
   BookOpen,
+  CreditCard,
   Database,
   Globe2,
   KeyRound,
@@ -42,6 +43,11 @@ export const mainNavItems: NavItem[] = [
     icon: KeyRound,
   },
   {
+    title: "Billing",
+    href: "/dashboard/billing",
+    icon: CreditCard,
+  },
+  {
     title: "Hosting Guide",
     href: "/dashboard/hosting-guide",
     icon: BookOpen,
@@ -55,6 +61,7 @@ const segmentTitles: Record<string, string> = {
   databases: "Databases",
   "ssh-access": "SSH Access",
   "hosting-guide": "Hosting Guide",
+  billing: "Billing",
   hosting: "Hosting",
 };
 
