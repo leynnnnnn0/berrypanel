@@ -116,6 +116,99 @@ test('a signed paid checkout webhook records payment and activates one month of 
     expect($subscription->refresh()->current_period_end->toIso8601String())->toBe($originalEnd);
 });
 
+test('a paid checkout webhook supports the paymongo event resource envelope', function () {
+    $user = User::factory()->create();
+    $plan = BillingPlan::where('slug', 'laravel-starter')->firstOrFail();
+    $payment = BillingPayment::create([
+        'user_id' => $user->id,
+        'billing_plan_id' => $plan->id,
+        'reference_number' => 'BP-TEST-EVENT-ENVELOPE',
+        'checkout_session_id' => 'cs_event_envelope_123',
+        'amount_centavos' => 9900,
+        'currency' => 'PHP',
+        'status' => 'pending',
+    ]);
+
+    $payload = [
+        'data' => [
+            'id' => 'evt_event_envelope_123',
+            'type' => 'event',
+            'attributes' => [
+                'type' => 'checkout_session.payment.paid',
+                'livemode' => false,
+                'data' => [
+                    'id' => 'cs_event_envelope_123',
+                    'type' => 'checkout_session',
+                    'attributes' => [
+                        'reference_number' => 'BP-TEST-EVENT-ENVELOPE',
+                        'payments' => [[
+                            'id' => 'pay_event_envelope_123',
+                            'type' => 'payment',
+                            'attributes' => [
+                                'amount' => 9900,
+                                'status' => 'paid',
+                                'source' => ['type' => 'qrph'],
+                            ],
+                        ]],
+                    ],
+                ],
+            ],
+        ],
+    ];
+    $raw = json_encode($payload, JSON_THROW_ON_ERROR);
+    $timestamp = (string) now()->timestamp;
+    $signature = hash_hmac('sha256', $timestamp.'.'.$raw, 'whsec_berrypanel');
+
+    $this->call('POST', '/api/paymongo/webhook', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_PAYMONGO_SIGNATURE' => "t={$timestamp},te={$signature},li=",
+    ], $raw)->assertOk();
+
+    expect($payment->refresh()->status)->toBe('paid')
+        ->and($payment->paymongo_payment_id)->toBe('pay_event_envelope_123')
+        ->and($user->billingSubscription()->firstOrFail()->billing_plan_id)->toBe($plan->id);
+});
+
+test('a signed paid checkout event activates service when paymongo omits embedded payments', function () {
+    $user = User::factory()->create();
+    $plan = BillingPlan::where('slug', 'node-laravel')->firstOrFail();
+    $payment = BillingPayment::create([
+        'user_id' => $user->id,
+        'billing_plan_id' => $plan->id,
+        'reference_number' => 'BP-TEST-MINIMAL-PAID',
+        'checkout_session_id' => 'cs_minimal_paid_123',
+        'amount_centavos' => 14900,
+        'currency' => 'PHP',
+        'status' => 'pending',
+    ]);
+
+    $payload = [
+        'data' => [
+            'id' => 'evt_minimal_paid_123',
+            'type' => 'checkout_session.payment.paid',
+            'data' => [
+                'id' => 'cs_minimal_paid_123',
+                'attributes' => [
+                    'reference_number' => 'BP-TEST-MINIMAL-PAID',
+                ],
+            ],
+        ],
+    ];
+    $raw = json_encode($payload, JSON_THROW_ON_ERROR);
+    $timestamp = (string) now()->timestamp;
+    $signature = hash_hmac('sha256', $timestamp.'.'.$raw, 'whsec_berrypanel');
+
+    $this->call('POST', '/api/paymongo/webhook', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_PAYMONGO_SIGNATURE' => "t={$timestamp},te={$signature},li=",
+    ], $raw)->assertOk();
+
+    expect($payment->refresh()->status)->toBe('paid')
+        ->and($payment->paymongo_payment_id)->toBeNull()
+        ->and($payment->payment_method)->toBe('qrph')
+        ->and($user->billingSubscription()->firstOrFail()->billing_plan_id)->toBe($plan->id);
+});
+
 test('paymongo webhook rejects an invalid signature', function () {
     $this->postJson('/api/paymongo/webhook', ['data' => []], [
         'Paymongo-Signature' => 't=123,te=invalid,li=',

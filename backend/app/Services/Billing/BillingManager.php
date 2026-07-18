@@ -50,7 +50,16 @@ class BillingManager
             throw new RuntimeException('PayMongo webhook data is missing.');
         }
 
-        $eventType = $event['type'] ?? data_get($event, 'attributes.type');
+        // Hosted Checkout events currently expose the event name directly on
+        // data.type. Older PayMongo event envelopes use data.type="event" and
+        // place the event name and resource under data.attributes instead.
+        // Accept both formats so a provider-side envelope change cannot leave
+        // a successful customer payment stuck in a pending state.
+        $eventType = $event['type'] ?? null;
+        if ($eventType === 'event' || ! is_string($eventType)) {
+            $eventType = data_get($event, 'attributes.type');
+        }
+
         if ($eventType !== 'checkout_session.payment.paid') {
             return;
         }
@@ -67,7 +76,7 @@ class BillingManager
             fn ($item) => data_get($item, 'attributes.status') === 'paid'
         );
 
-        if (! is_string($reference) || ! is_string($sessionId) || ! is_array($paidPayment)) {
+        if (! is_string($reference) || ! is_string($sessionId)) {
             throw new RuntimeException('PayMongo payment details are incomplete.');
         }
 
@@ -88,8 +97,9 @@ class BillingManager
                 throw new RuntimeException('PayMongo checkout session does not match the pending payment.');
             }
 
-            $paidAttributes = $paidPayment['attributes'] ?? [];
-            if ((int) ($paidAttributes['amount'] ?? 0) !== $payment->amount_centavos) {
+            $paidAttributes = is_array($paidPayment) ? ($paidPayment['attributes'] ?? []) : [];
+            $reportedAmount = $paidAttributes['amount'] ?? null;
+            if ($reportedAmount !== null && (int) $reportedAmount !== $payment->amount_centavos) {
                 throw new RuntimeException('PayMongo payment amount does not match the selected plan.');
             }
 
@@ -97,7 +107,7 @@ class BillingManager
                 $subscription = $this->activateSubscription($payment);
                 $payment->update([
                     'billing_subscription_id' => $subscription->id,
-                    'paymongo_payment_id' => $paidPayment['id'] ?? null,
+                    'paymongo_payment_id' => is_array($paidPayment) ? ($paidPayment['id'] ?? null) : null,
                     'status' => 'paid',
                     'checkout_url' => null,
                     'payment_method' => data_get($paidAttributes, 'source.type', 'qrph'),

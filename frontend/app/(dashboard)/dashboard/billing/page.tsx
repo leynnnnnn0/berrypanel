@@ -93,6 +93,15 @@ export default function BillingPage() {
     const result = new URLSearchParams(window.location.search).get("payment");
     if (result === "success") {
       setNotice("Payment submitted. Your plan updates as soon as PayMongo confirms the QR payment.");
+      void load();
+
+      const interval = window.setInterval(() => void load(), 3000);
+      const timeout = window.setTimeout(() => window.clearInterval(interval), 30000);
+
+      return () => {
+        window.clearInterval(interval);
+        window.clearTimeout(timeout);
+      };
     } else if (result === "cancelled") {
       setNotice("Payment was cancelled. Your current plan was not changed.");
     }
