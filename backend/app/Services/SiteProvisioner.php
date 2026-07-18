@@ -10,6 +10,8 @@ use Symfony\Component\Process\Process;
 
 class SiteProvisioner
 {
+    public function __construct(private readonly SiteEnvironmentFileStore $environmentFiles) {}
+
     public function provision(User $user, string $siteSlug, string $repositoryUrl, string $repositoryBranch, ?string $appUrl = null): array
     {
         $linuxUsername = $user->linux_username;
@@ -115,10 +117,10 @@ class SiteProvisioner
             ->implode(PHP_EOL).PHP_EOL;
 
         try {
-            File::put($this->joinPath($sitePath, '.env'), $content, true);
+            $this->environmentFiles->write($site, $content);
         } catch (\Throwable $exception) {
             throw new RuntimeException(
-                "BerryPanel cannot write the .env file for {$site->name}. Check site folder permissions.",
+                "BerryPanel could not save the environment settings for {$site->name}. Please try again or contact support.",
                 previous: $exception,
             );
         }
@@ -360,9 +362,21 @@ class SiteProvisioner
             return null;
         }
 
+        return $this->parseEnvironmentContent((string) File::get($envPath));
+    }
+
+    public function readEnvironmentFileForSite(Site $site): ?array
+    {
+        $content = $this->environmentFiles->read($site);
+
+        return $content === null ? null : $this->parseEnvironmentContent($content);
+    }
+
+    private function parseEnvironmentContent(string $content): array
+    {
         $variables = [];
 
-        foreach (explode(PHP_EOL, (string) File::get($envPath)) as $line) {
+        foreach (explode(PHP_EOL, $content) as $line) {
             $line = trim($line);
 
             if ($line === '' || str_starts_with($line, '#') || ! str_contains($line, '=')) {
@@ -372,11 +386,9 @@ class SiteProvisioner
             [$key, $value] = explode('=', $line, 2);
             $key = trim($key);
 
-            if ($key === '') {
-                continue;
+            if ($key !== '') {
+                $variables[$key] = trim($value, " \t\n\r\0\x0B\"'");
             }
-
-            $variables[$key] = trim($value, " \t\n\r\0\x0B\"'");
         }
 
         return $variables;
@@ -390,8 +402,8 @@ class SiteProvisioner
 
         $nearestExistingPath = $usersRoot;
 
-        while (! File::exists($nearestExistingPath)) { 
-            $parent = dirname($nearestExistingPath); 
+        while (! File::exists($nearestExistingPath)) {
+            $parent = dirname($nearestExistingPath);
 
             if ($parent === $nearestExistingPath) {
                 break;

@@ -192,7 +192,7 @@ class SiteCommandRunner
 
     private function refreshSiteRuntime(Site $site, string $siteRoot, string $command): void
     {
-        $variables = $this->provisioner->readEnvironmentFile($siteRoot) ?? [];
+        $variables = $this->provisioner->readEnvironmentFileForSite($site) ?? [];
         $warnings = $this->warningsAfterSuccessfulCommand(
             $site->deployment_warnings ?? [],
             $command

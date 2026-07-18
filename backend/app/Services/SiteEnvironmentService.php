@@ -139,6 +139,6 @@ class SiteEnvironmentService
             return null;
         }
 
-        return $this->provisioner->readEnvironmentFile($site->root_path);
+        return $this->provisioner->readEnvironmentFileForSite($site);
     }
 }
