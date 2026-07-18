@@ -9,6 +9,8 @@ use Symfony\Component\Process\Process;
 
 class SshAccessProvisioner
 {
+    public function __construct(private readonly SystemUserProvisioner $systemUsers) {}
+
     public function provision(User $user, string $publicKey): void
     {
         if (! (bool) config('berrypanel.ssh_provisioning_enabled')) {
@@ -16,6 +18,7 @@ class SshAccessProvisioner
         }
 
         $username = $this->username($user);
+        $this->systemUsers->ensure($user);
         $usersRoot = (string) config('berrypanel.users_root');
         $homePath = $this->joinPath($usersRoot, $username);
         $sitesPath = $this->joinPath($homePath, 'sites');
@@ -26,22 +29,6 @@ class SshAccessProvisioner
         $temporaryKeyPath = storage_path("app/berrypanel/ssh/{$username}_authorized_keys");
         File::put($temporaryKeyPath, trim($publicKey).PHP_EOL);
 
-        if (! $this->systemUserExists($username)) {
-            $this->run([
-                'sudo',
-                'useradd',
-                '--home-dir',
-                $homePath,
-                '--shell',
-                '/bin/bash',
-                '--gid',
-                'berrypanel',
-                '--no-create-home',
-                $username,
-            ], 'Unable to create Linux SSH user');
-        }
-
-        $this->run(['sudo', 'usermod', '-aG', 'berrypanel', $username], 'Unable to attach Linux user to berrypanel group');
         $this->run(['sudo', 'mkdir', '-p', $sitesPath, $sshPath], 'Unable to create SSH workspace folders');
         $this->run(['sudo', 'cp', $temporaryKeyPath, $authorizedKeysPath], 'Unable to install SSH authorized key');
         $this->run(['sudo', 'chown', '-R', "{$username}:berrypanel", $homePath], 'Unable to set SSH workspace ownership');
@@ -75,14 +62,6 @@ class SshAccessProvisioner
         }
 
         return $username;
-    }
-
-    private function systemUserExists(string $username): bool
-    {
-        $process = new Process(['id', '-u', $username]);
-        $process->run();
-
-        return $process->isSuccessful();
     }
 
     private function joinPath(string $left, string $right): string

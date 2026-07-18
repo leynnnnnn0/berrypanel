@@ -12,8 +12,8 @@ class SiteCommandRunner
     public function __construct(
         private readonly SiteEnvironmentService $environment,
         private readonly SiteProvisioner $provisioner,
-    ) {
-    }
+        private readonly SystemUserProvisioner $systemUsers,
+    ) {}
 
     /**
      * Run one approved command inside a provisioned site folder.
@@ -23,7 +23,20 @@ class SiteCommandRunner
      */
     public function run(Site $site, string $input): array
     {
+        $site->loadMissing('user');
+        $user = $site->user;
+
+        if (! $user) {
+            throw new RuntimeException('This site does not have an owner.');
+        }
+
+        $created = $this->systemUsers->ensure($user);
         $siteRoot = $this->validatedSiteRoot($site);
+
+        if ($created) {
+            $this->systemUsers->claimSite($user, $siteRoot);
+        }
+
         $normalized = $this->normalize($input);
         $command = $this->commandFor($site, $normalized);
 

@@ -21,12 +21,15 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 type Feature = {
   title: string;
   body: string;
+  image: string;
+  imageAlt: string;
   tone: "cream" | "image" | "lavender" | "dark";
 };
 
@@ -34,6 +37,8 @@ type Testimonial = {
   name: string;
   role: string;
   quote: string;
+  image: string;
+  imageAlt: string;
 };
 
 type ProcessStep = {
@@ -47,14 +52,15 @@ type Plan = {
   name: string;
   body: string;
   price: string;
-  tone: "lavender" | "white" | "cream";
+  features: string[];
+  tone: "lavender" | "white" | "cream" | "dark";
 };
 
 const navItems = [
   "Home",
   "Hosting",
   "Features",
-  "Customers",
+  "Students",
   "Process",
   "Plans",
 ];
@@ -63,49 +69,61 @@ const features: Feature[] = [
   {
     title: "Launch With Confidence",
     body: "Bring your Laravel website online through a clear, guided experience from start to finish.",
+    image: "/images/features/launch-with-confidence.png",
+    imageAlt: "A student successfully publishing a web project",
     tone: "cream",
   },
   {
     title: "Everything In One Place",
     body: "See your websites, domains, updates, activity, and current status from one simple dashboard.",
+    image: "/images/features/everything-in-one-place.png",
+    imageAlt: "A student managing project services from one dashboard",
     tone: "image",
   },
   {
     title: "Keep Every Site Healthy",
     body: "Handle everyday website updates and important maintenance with a workflow your team can follow.",
+    image: "/images/features/keep-every-site-healthy.png",
+    imageAlt: "Students reviewing the healthy status of their website",
     tone: "lavender",
   },
   {
     title: "Support Your Growth",
     body: "Stay on top of background work, recent activity, and issues as your websites and customers grow.",
+    image: "/images/features/support-your-growth.png",
+    imageAlt: "A student team celebrating the growth of their application",
     tone: "dark",
   },
 ];
 
 const testimonials: Testimonial[] = [
   {
-    name: "Mika Reyes",
-    role: "Laravel developer",
-    quote:
-      "BerryPanel gives me one clear place to launch client websites and see what needs attention.",
+    name: "Capstone teams",
+    role: "Deploy the project you spent a semester building",
+    quote: "Connect a public GitHub repository and follow the deployment from your own dashboard.",
+    image: "/images/student-projects/capstone-teams.png",
+    imageAlt: "A capstone web application being published from a laptop",
   },
   {
-    name: "Andre Santos",
-    role: "Founder, small studio",
-    quote:
-      "Our websites, domains, and updates are easy to find. I always know what is live and what comes next.",
+    name: "Portfolio builders",
+    role: "Share real work with professors and employers",
+    quote: "Publish Laravel, Blade, Livewire, Inertia, or Filament projects on an address you can share.",
+    image: "/images/student-projects/portfolio-builders.png",
+    imageAlt: "A web portfolio displayed across a laptop and phone",
   },
   {
-    name: "Nia Castillo",
-    role: "Product developer",
-    quote:
-      "I can focus on building the customer experience while BerryPanel keeps the launch process organized.",
+    name: "Student developers",
+    role: "Learn production without managing a whole server",
+    quote: "Use guided tools for environment settings, databases, domains, deployments, and application services.",
+    image: "/images/student-projects/student-developers.png",
+    imageAlt: "A managed project dashboard connected to hosting tools",
   },
   {
-    name: "Luis Tan",
-    role: "Project owner",
-    quote:
-      "Our team can manage production websites without turning every update into a technical project.",
+    name: "Growing projects",
+    role: "Add more capability only when you need it",
+    quote: "Begin free, then add queues, schedules, Reverb, or Node.js hosting as your application grows.",
+    image: "/images/student-projects/growing-projects.png",
+    imageAlt: "A web application growing across devices with scheduled activity",
   },
 ];
 
@@ -138,22 +156,32 @@ const processSteps: ProcessStep[] = [
 
 const plans: Plan[] = [
   {
-    name: "Static",
-    body: "For portfolios, landing pages, and straightforward public websites.",
-    price: "Free",
+    name: "Free",
+    body: "A practical starting point for coursework, portfolios, and early capstone demos.",
+    price: "₱0",
+    features: ["2 Laravel sites", "Managed deployment", "No jobs, scheduler, or Reverb"],
     tone: "lavender",
   },
   {
-    name: "Laravel",
-    body: "For customer portals and business applications that need a reliable Laravel home.",
-    price: "Private",
+    name: "Starter",
+    body: "For student applications that need background work or scheduled tasks.",
+    price: "₱20",
+    features: ["2 Laravel sites", "Jobs and scheduler for 1 site", "No Reverb"],
     tone: "white",
   },
   {
-    name: "Managed",
-    body: "For growing applications that need extra automation, monitoring, and hands-on support.",
-    price: "Invite",
+    name: "Pro",
+    body: "For larger projects that need more sites and real-time application features.",
+    price: "₱34",
+    features: ["3 Laravel sites", "Jobs and scheduler for 2 sites", "Reverb for 2 sites"],
     tone: "cream",
+  },
+  {
+    name: "Premium",
+    body: "For complete projects with a separate Node.js frontend and Laravel backend.",
+    price: "₱49",
+    features: ["5 Laravel sites", "1 Node.js + Laravel site", "Jobs, scheduler, and Reverb"],
+    tone: "dark",
   },
 ];
 
@@ -227,7 +255,10 @@ function Header({ onMenu }: { onMenu: () => void }) {
   return (
     <header className="absolute left-0 right-0 top-0 z-30 flex items-center justify-between px-8 py-7 md:px-12">
       <div className="flex items-center gap-2">
-        <PillButton onClick={onMenu}>Menu</PillButton>
+        <LogoMark />
+      </div>
+      <div className="flex itemss-center gap-2">
+        <PillButton href="/login" className="hidden">Login</PillButton>
         <button
           type="button"
           onClick={onMenu}
@@ -236,16 +267,6 @@ function Header({ onMenu }: { onMenu: () => void }) {
         >
           <Menu className="size-6" strokeWidth={2} />
         </button>
-        <PillButton href="/login">Login</PillButton>
-      </div>
-      <div className="hidden md:block">
-        <LogoMark />
-      </div>
-      <div className="hidden items-center gap-3 text-[18px] text-[#567C8D] md:flex">
-        <span className="grid size-11 place-items-center rounded-full border border-[#567C8D] text-[#2F4156]">
-          EN
-        </span>
-        <span>PH</span>
       </div>
     </header>
   );
@@ -310,71 +331,25 @@ function MenuOverlay({
   );
 }
 
-function BrowserMock() {
+function StudentHeroVisual() {
   return (
-    <div className="relative h-full min-h-[640px] overflow-hidden rounded-[28px] bg-[#C8D9E6] md:rounded-[34px]">
-      <div className="absolute left-7 top-20 flex gap-4">
-        <div className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
-          <ServerCog className="size-6" />
-        </div>
-        <div className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
-          <Globe2 className="size-6" />
-        </div>
-      </div>
-      <motion.div
-        className="absolute bottom-0 left-[13%] h-[34%] w-[68%] rounded-t-[18px] bg-gradient-to-b from-[#2F4156] to-[#2F4156]"
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.25, ease: springEase }}
+    <div className="relative min-h-[620px] overflow-hidden bg-[#C8D9E6] md:min-h-[760px]">
+      <Image
+        src="/images/student-hosting-hero.png"
+        alt="Students collaborating on a web application project"
+        fill
+        priority
+        sizes="(min-width: 768px) 50vw, 100vw"
+        className="object-cover object-center"
       />
-      <motion.div
-        className="absolute bottom-[25%] right-[-2%] h-[300px] w-[58%] rotate-[-7deg] rounded-[20px] border-[10px] border-[#2F4156] bg-white shadow-2xl"
-        initial={{ x: 80, rotate: -13, opacity: 0 }}
-        animate={{ x: 0, rotate: -7, opacity: 1 }}
-        transition={{ duration: 0.85, delay: 0.35, ease: springEase }}
-      >
-        <div className="h-full overflow-hidden rounded-[10px] bg-[#F1F1F1]">
-          <div className="h-[44%] bg-[linear-gradient(135deg,#2F4156,#567C8D)] opacity-75" />
-          <div className="space-y-3 p-5">
-            <span className="rounded-full bg-[#2F4156] px-3 py-1 text-xs text-white">
-              Ready To Launch
-            </span>
-            <div className="text-[34px] leading-[0.95] tracking-[-0.06em]">
-              Ready For
-              <br />
-              Customers
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-12 w-20 rounded-xl bg-[#C8D9E6]" />
-              <div className="h-12 w-20 rounded-xl bg-white" />
-              <div className="h-12 w-20 rounded-xl bg-[#F1F1F1]" />
-            </div>
+      <div className="absolute inset-x-6 bottom-6 rounded-[24px] border border-white/60 bg-white/88 p-5 shadow-xl backdrop-blur md:inset-x-8 md:bottom-8">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#567C8D]">Built for student projects</p>
+            <p className="mt-2 text-xl font-semibold tracking-[-0.03em] text-[#2F4156]">From GitHub repository to a shareable website.</p>
           </div>
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#2F4156] text-white"><Rocket className="size-5" /></span>
         </div>
-      </motion.div>
-      <div className="absolute bottom-7 right-8 flex items-center gap-4 rounded-full bg-white/95 p-3 shadow-xl">
-        {["SITE", "URL", "SSL"].map((item, index) => (
-          <div
-            key={item}
-            className={`grid size-16 place-items-center rounded-full text-[15px] font-medium ${
-              index === 0
-                ? "border-[5px] border-[#2F4156] bg-[#C8D9E6]"
-                : "bg-[#C8D9E6]"
-            }`}
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-      <div className="absolute bottom-10 left-[47%] flex items-center gap-4 text-white">
-        <span className="grid size-11 place-items-center rounded-full border border-white/70">
-          +
-        </span>
-        <span className="text-[22px] leading-[1.05] text-white/80">
-          Explore your
-          <br />
-          websites
-        </span>
       </div>
     </div>
   );
@@ -392,18 +367,17 @@ function HeroCard() {
       <div className="relative flex min-h-[720px] flex-col justify-between px-8 pb-8 pt-28 md:px-12 md:pt-32">
         <div className="mt-16 max-w-[720px] md:mt-20">
           <h1 className="text-[56px] font-normal leading-[0.92] tracking-[-0.065em] text-[#2F4156] md:text-[72px] xl:text-[76px]">
-            Launch Laravel Sites
+            Your Student Project
             <br />
-            With{" "}
+            Deserves To Go{" "}
             <span className="relative inline-block rounded-xl bg-[#C8D9E6] px-3">
-              Confidence
-              <span className="absolute -right-4 bottom-0 -z-0 h-full w-8 rounded-r-xl bg-[#F1F1F1]" />
+              Live
             </span>
           </h1>
           <div className="mt-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <p className="max-w-[410px] text-[22px] leading-[1.05] tracking-[-0.035em] text-[#567C8D]">
-              A simple home for launching, managing, and monitoring your Laravel
-              websites—all in one place.
+              Affordable Laravel hosting crafted for students, capstone teams,
+              portfolios, and the projects you are ready to share.
             </p>
             <PillButton href="/register" dark className="h-14 min-w-40">
               Get Started
@@ -436,16 +410,13 @@ function HeroCard() {
                 </div>
               ))}
             </div>
-            <div className="mt-8 text-[30px] leading-none tracking-[-0.05em]">
-              5+
-            </div>
             <p className="mt-2 text-[15px] leading-tight text-[#567C8D]">
-              Everything your team needs in one simple workspace
+              Everything you needs in one simple workspace
             </p>
           </div>
         </div>
       </div>
-      <BrowserMock />
+      <StudentHeroVisual />
     </motion.section>
   );
 }
@@ -453,20 +424,20 @@ function HeroCard() {
 function SplitStatement() {
   return (
     <motion.section
-      className="min-h-[620px] bg-white px-8 py-28 text-center"
+      className="min-h-fit bg-white px-8 py-28 text-center"
       {...sectionReveal}
     >
       <h2 className="mx-auto max-w-[1080px] text-[62px] font-normal leading-[1.18] tracking-[-0.06em] text-[#2F4156] md:text-[88px]">
-        Everything Your Laravel Site Needs
+        Hosting That Meets Students
         <br />
         In{" "}
         <span className="rounded-xl bg-[#F1F1F1] px-3">
-          One Simple Place
+          Where They Are
         </span>
       </h2>
       <p className="mx-auto mt-10 max-w-[540px] text-[20px] leading-[1.08] tracking-[-0.035em] text-[#567C8D]">
-        From launch to everyday updates, BerryPanel keeps every website clear,
-        organized, and easy to manage.
+        Start free, connect a GitHub repository, and learn how a real Laravel
+        application moves from development to the web.
       </p>
     </motion.section>
   );
@@ -476,83 +447,75 @@ function PerformanceSection() {
   return (
     <motion.section
       id="hosting"
-      className="bg-white px-8 py-14 md:px-14"
+      className="bg-white px-8 py-32 md:px-14"
       {...sectionReveal}
     >
       <div className="text-center">
         <div className="inline-flex items-center gap-4">
           <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px] text-[#567C8D]">
-            Faster Launches
+            Localhost To Live
           </span>
           <Clock3 className="size-9 text-[#567C8D]" />
         </div>
-        <h2 className="mx-auto mt-10 max-w-[780px] text-[58px] font-normal leading-[1.05] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-          From New Project To Live Website, Made Simple.
+        <h2 className="mx-auto max-w-[780px] text-[58px] font-normal leading-[1.05] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+          Your Project Should Not Stay On Your Laptop.
         </h2>
+        <p className="mx-auto mt-7 max-w-[680px] text-[20px] leading-[1.2] tracking-[-0.03em] text-[#567C8D]">
+          BerryPanel turns a Laravel project that only works locally into a
+          real website your classmates, professors, clients, and employers can
+          open online.
+        </p>
       </div>
-      <div className="relative mx-auto mt-16 grid max-w-[1180px] gap-6 md:grid-cols-2">
-        <CompareCard label="Without BerryPanel" time="Many" slow />
-        <div className="absolute left-1/2 top-1/2 z-10 hidden size-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-[28px] tracking-[-0.04em] text-[#567C8D] shadow-lg md:grid">
-          VS
+      <motion.div
+        className="relative mx-auto mt-16 max-w-[1180px] overflow-hidden rounded-[30px] bg-[#F1F1F1] shadow-[0_22px_70px_rgba(47,65,86,0.12)]"
+        {...softPop}
+      >
+        <div className="relative aspect-[16/9] min-h-[390px]">
+          <Image
+            src="/images/localhost-to-live-comparison.png"
+            alt="A student project running locally compared with the same project published online"
+            fill
+            sizes="(min-width: 1280px) 1180px, 100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-transparent to-transparent" />
+          <div className="absolute inset-x-5 top-5 grid grid-cols-2 gap-5 md:inset-x-8 md:top-8">
+            <span className="w-fit rounded-full bg-white/90 px-5 py-3 text-sm font-medium text-[#2F4156] shadow-lg backdrop-blur md:text-base">
+              Local development
+            </span>
+            <span className="ml-auto w-fit rounded-full bg-[#caff80] px-5 py-3 text-sm font-medium text-[#2F4156] shadow-lg md:text-base">
+              Live on the internet
+            </span>
+          </div>
         </div>
-        <CompareCard label="With BerryPanel" time="One" />
-      </div>
+        <div className="grid md:grid-cols-2">
+          <div className="border-b border-[#D6E1E8] p-7 md:border-b-0 md:border-r md:p-9">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#567C8D]">
+              Before publishing
+            </p>
+            <h3 className="mt-3 text-[30px] leading-none tracking-[-0.045em] text-[#2F4156]">
+              It only works on your computer
+            </h3>
+            <p className="mt-4 max-w-[470px] text-base leading-relaxed text-[#567C8D]">
+              Localhost is useful while building, but nobody else can visit the
+              project unless your development computer is running.
+            </p>
+          </div>
+          <div className="bg-white p-7 md:p-9">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#567C8D]">
+              After publishing
+            </p>
+            <h3 className="mt-3 text-[30px] leading-none tracking-[-0.045em] text-[#2F4156]">
+              It is online and ready to share
+            </h3>
+            <p className="mt-4 max-w-[470px] text-base leading-relaxed text-[#567C8D]">
+              BerryPanel deploys the repository, assigns an address, and keeps
+              the application available from phones, laptops, and other devices.
+            </p>
+          </div>
+        </div>
+      </motion.div>
     </motion.section>
-  );
-}
-
-function CompareCard({
-  label,
-  time,
-  slow = false,
-}: {
-  label: string;
-  time: string;
-  slow?: boolean;
-}) {
-  return (
-    <motion.div
-      className="min-h-[440px] min-w-0 rounded-[22px] bg-white p-6 shadow-[0_0_35px_rgba(0,0,0,0.035)] md:p-8"
-      {...softPop}
-    >
-      <div className="flex items-center justify-between">
-        <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
-          {label}
-        </span>
-        <span
-          className={`grid size-14 place-items-center rounded-full text-[18px] ${
-            slow ? "bg-[#F1F1F1]" : "bg-[#caff80]"
-          }`}
-        >
-          {time}
-        </span>
-      </div>
-      <div className="mx-auto mt-14 h-72 max-w-[520px] rounded-[18px] bg-[#F1F1F1] p-8">
-        {slow ? (
-          <div className="mt-28 h-28 max-w-[330px] rounded-xl bg-[#C8D9E6] p-5">
-            <div className="size-24 rounded-lg bg-white" />
-          </div>
-        ) : (
-          <div className="h-full rounded-xl bg-white p-6">
-            <div className="mb-12 flex justify-end gap-3">
-              {["setup", "publish", "manage"].map((item) => (
-                <span
-                  key={item}
-                  className="rounded-full bg-[#F1F1F1] px-4 py-2 text-xs"
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-            <div className="grid gap-3">
-              <div className="h-7 w-3/4 rounded-full bg-[#C8D9E6]" />
-              <div className="h-7 w-1/2 rounded-full bg-[#F1F1F1]" />
-              <div className="h-7 w-2/3 rounded-full bg-[#F1F1F1]" />
-            </div>
-          </div>
-        )}
-      </div>
-    </motion.div>
   );
 }
 
@@ -564,16 +527,9 @@ function FeatureSection() {
       {...sectionReveal}
     >
       <div className="flex items-center justify-between">
-        <div className="flex gap-5 text-[#567C8D]">
-          <CircleHelp className="size-7" />
-          <Share2 className="size-7" />
-        </div>
-        <h2 className="text-center text-[54px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
+        <h2 className="text-center text-[54px] font-normal w-full leading-none tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
           Everything You Need, Right Where You Need It
         </h2>
-        <div className="hidden items-center gap-3 text-[20px] text-[#567C8D] md:flex">
-          Browse Features <ArrowDown className="size-5" />
-        </div>
       </div>
       <div className="mt-20 grid gap-6 md:min-w-[1280px] md:grid-cols-[380px_380px_380px_380px]">
         {features.map((feature) => (
@@ -602,16 +558,23 @@ function FeatureCard({ feature }: { feature: Feature }) {
 
   return (
     <motion.article
-      className={`relative h-[520px] overflow-hidden rounded-[26px] p-10 ${styles[feature.tone]}`}
+      className={`group relative flex h-[560px] flex-col overflow-hidden rounded-[26px] ${styles[feature.tone]}`}
       whileHover={{ y: -8, scale: 1.015 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="absolute inset-0 text-[360px] font-semibold leading-none text-white/28">
-        B
+      <div className="relative h-[285px] shrink-0 overflow-hidden">
+        <Image
+          src={feature.image}
+          alt={feature.imageAlt}
+          fill
+          sizes="380px"
+          className="object-cover transition duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
       </div>
-      <div className="relative z-10 flex h-full flex-col justify-between">
+      <div className="relative z-10 flex flex-1 flex-col justify-between p-8">
         <div className="flex items-start justify-between gap-6">
-          <h3 className="text-[38px] leading-[0.95] tracking-[-0.055em]">
+          <h3 className="text-[34px] leading-[0.95] tracking-[-0.055em]">
             {feature.title}
           </h3>
           <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white text-[#2F4156]">
@@ -622,7 +585,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
             )}
           </span>
         </div>
-        <p className="max-w-[290px] text-[22px] leading-[1.05] tracking-[-0.045em]">
+        <p className={`max-w-[300px] text-[18px] leading-[1.15] tracking-[-0.035em] ${feature.tone === "dark" ? "text-white/80" : "text-[#567C8D]"}`}>
           {feature.body}
         </p>
       </div>
@@ -633,40 +596,53 @@ function FeatureCard({ feature }: { feature: Feature }) {
 function TestimonialsSection() {
   return (
     <motion.section
-      id="customers"
+      id="students"
       className="bg-white px-8 py-20 md:px-14"
       {...sectionReveal}
     >
       <div className="text-center">
         <div className="inline-flex items-center gap-4">
           <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
-            Customer Stories
+            Made For Students
           </span>
           <Users className="size-9 text-[#567C8D]" />
         </div>
         <h2 className="mt-10 text-[58px] font-normal leading-[1.02] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-          Built For Teams
+          Built Around The Projects
           <br />
-          That Want Simplicity
+          Students Actually Create
         </h2>
       </div>
       <div className="mt-20 grid gap-7 md:grid-cols-4">
         {testimonials.map((item) => (
           <motion.article
             key={item.name}
-            className="flex min-h-[430px] flex-col justify-between rounded-[24px] bg-[#F1F1F1] p-9"
+            className="group flex min-h-[520px] flex-col overflow-hidden rounded-[24px] bg-[#F1F1F1]"
             whileHover={{ y: -8 }}
             transition={{ duration: 0.25 }}
           >
-            <div>
-              <h3 className="text-[30px] tracking-[-0.05em]">{item.name}</h3>
-              <p className="mt-2 text-[18px] leading-tight text-[#567C8D]">
-                {item.role}
+            <div className="relative h-[250px] shrink-0 overflow-hidden">
+              <Image
+                src={item.image}
+                alt={item.imageAlt}
+                fill
+                sizes="(min-width: 768px) 25vw, 100vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
+              />
+            </div>
+            <div className="flex flex-1 flex-col justify-between p-7">
+              <div>
+                <h3 className="text-[30px] tracking-[-0.05em]">
+                  {item.name}
+                </h3>
+                <p className="mt-2 text-[18px] leading-tight text-[#567C8D]">
+                  {item.role}
+                </p>
+              </div>
+              <p className="mt-8 text-[18px] leading-[1.1] tracking-[-0.035em] text-[#2F4156]">
+                {item.quote}
               </p>
             </div>
-            <p className="text-[20px] leading-[1.05] tracking-[-0.04em] text-[#2F4156]">
-              {item.quote}
-            </p>
           </motion.article>
         ))}
       </div>
@@ -720,33 +696,18 @@ function PricingSection() {
       className="bg-white px-8 py-16 md:px-14"
       {...sectionReveal}
     >
-      <div className="grid items-start gap-8 md:grid-cols-3">
-        <div className="flex gap-4">
-          <PillButton>Annual</PillButton>
-          <PillButton>
-            <span className="mr-3 size-9 rounded-full bg-[#C8D9E6]" />
-            Monthly
-          </PillButton>
-        </div>
-        <div className="text-center">
+      <div className="mx-auto max-w-[900px] text-center">
           <div className="inline-flex items-center gap-4">
             <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
-              Simple Plans
+              Student-Friendly Monthly Plans
             </span>
             <CircleDollarSign className="size-9 text-[#567C8D]" />
           </div>
           <h2 className="mt-9 text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-            Choose What Fits Your Website
+            Start Free. Upgrade When Your Project Needs More.
           </h2>
-        </div>
-        <div className="hidden justify-end gap-5 text-[22px] text-[#567C8D] md:flex">
-          See more options
-          <span className="grid size-14 place-items-center rounded-full bg-[#C8D9E6]">
-            &laquo;
-          </span>
-        </div>
       </div>
-      <div className="mt-20 grid gap-7 md:grid-cols-3">
+      <div className="mx-auto mt-20 grid max-w-[1280px] gap-7 lg:grid-cols-2">
         {plans.map((plan) => (
           <PlanCard key={plan.name} plan={plan} />
         ))}
@@ -760,6 +721,7 @@ function PlanCard({ plan }: { plan: Plan }) {
     lavender: "bg-[#C8D9E6]",
     white: "bg-white border border-[#C8D9E6]",
     cream: "bg-[#F1F1F1]",
+    dark: "bg-[#2F4156] text-white",
   };
 
   return (
@@ -779,18 +741,21 @@ function PlanCard({ plan }: { plan: Plan }) {
           <h3 className="text-[52px] leading-none tracking-[-0.06em]">
             {plan.name}
           </h3>
-          <p className="mx-auto mt-8 max-w-[360px] text-[23px] leading-[1.05] tracking-[-0.045em] text-[#567C8D]">
+          <p className={`mx-auto mt-8 max-w-[360px] text-[23px] leading-[1.05] tracking-[-0.045em] ${plan.tone === "dark" ? "text-white/75" : "text-[#567C8D]"}`}>
             {plan.body}
           </p>
+          <ul className={`mx-auto mt-7 max-w-[360px] space-y-2 text-left text-sm ${plan.tone === "dark" ? "text-white/80" : "text-[#567C8D]"}`}>
+            {plan.features.map((feature) => <li key={feature} className="flex items-center gap-2"><span className={`size-2 rounded-full ${plan.tone === "dark" ? "bg-[#C8D9E6]" : "bg-[#567C8D]"}`} />{feature}</li>)}
+          </ul>
         </div>
         <div className="flex w-full items-center justify-center gap-6">
-          <span className="rounded-full bg-white px-9 py-5 text-[38px] leading-none tracking-[-0.06em]">
+          <span className="rounded-full bg-white px-9 py-5 text-[38px] leading-none tracking-[-0.06em] text-[#2F4156]">
             {plan.price}
             <span className="ml-4 text-[18px] tracking-[-0.03em] text-[#567C8D]">
-              / setup
+              / month
             </span>
           </span>
-          <span className="grid size-20 place-items-center rounded-full bg-white">
+          <span className="grid size-20 place-items-center rounded-full bg-white text-[#2F4156]">
             <ArrowUpRight className="size-11" strokeWidth={1.5} />
           </span>
         </div>
@@ -826,9 +791,9 @@ function FinalCta() {
         </span>
       </div>
       <h2 className="relative z-10 mx-auto mt-10 max-w-[900px] text-[56px] font-normal leading-[1.08] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-        Your Next Laravel Website
+        Your Capstone, Portfolio, Or Next Big Idea
         <br />
-        Starts Here
+        Can Go Live Here
       </h2>
       <PillButton
         href="/register"
@@ -877,7 +842,6 @@ export default function Home() {
       <div className="relative flex flex-col">
         <Header onMenu={() => setMenuOpen(true)} />
         <HeroCard />
-        <SplitStatement />
         <PerformanceSection />
         <FeatureSection />
         <TestimonialsSection />

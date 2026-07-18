@@ -8,6 +8,7 @@ use App\Models\Site;
 use App\Services\Billing\HostingPlanAccess;
 use App\Services\Hosting\AuditLogger;
 use App\Services\SitePresenter;
+use App\Services\SystemUserProvisioner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -30,7 +31,7 @@ class HybridHostingProjectController extends Controller
         ]);
     }
 
-    public function store(CreateHybridHostingProjectRequest $r, AuditLogger $audit, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
+    public function store(CreateHybridHostingProjectRequest $r, AuditLogger $audit, SitePresenter $presenter, HostingPlanAccess $plans, SystemUserProvisioner $systemUsers): JsonResponse
     {
         try {
             $plans->assertCanCreateHybridSite($r->user());
@@ -44,12 +45,14 @@ class HybridHostingProjectController extends Controller
             return response()->json(['message' => 'You already have a project with this name.'], 422);
         }
 
-        if (! $r->user()->linux_username) {
-            $r->user()->update(['linux_username' => 'user_'.$r->user()->id]);
+        try {
+            $systemUsers->ensure($r->user());
+            $root = rtrim((string) config('berrypanel.users_root'), '/').'/'.$r->user()->linux_username.'/sites/'.$slug;
+            File::ensureDirectoryExists($root, 0775, true);
+            $systemUsers->claimSite($r->user(), $root);
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
         }
-
-        $root = rtrim((string) config('berrypanel.users_root'), '/').'/'.$r->user()->linux_username.'/sites/'.$slug;
-        File::ensureDirectoryExists($root, 0775, true);
         $domain = $this->siteHost($slug);
         $public = rtrim($input['backend_directory'], '/').'/public';
         $defaults = [

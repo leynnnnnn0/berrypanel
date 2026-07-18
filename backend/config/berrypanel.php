@@ -10,6 +10,7 @@ return [
     'git_deploy_enabled' => (bool) env('BERRYPANEL_GIT_DEPLOY_ENABLED', false),
     'storage_quota_gb' => (float) env('BERRYPANEL_STORAGE_QUOTA_GB', 1.2),
     'site_command_use_sudo' => filter_var(env('BERRYPANEL_SITE_COMMAND_USE_SUDO', env('BERRYPANEL_USERS_ROOT') ? true : false), FILTER_VALIDATE_BOOLEAN),
+    'system_user_provisioning_enabled' => filter_var(env('BERRYPANEL_SYSTEM_USER_PROVISIONING_ENABLED', env('BERRYPANEL_USERS_ROOT') ? true : false), FILTER_VALIDATE_BOOLEAN),
     'nginx_provisioning_enabled' => (bool) env('BERRYPANEL_NGINX_PROVISIONING_ENABLED', false),
     'nginx_sites_available_path' => env('BERRYPANEL_NGINX_SITES_AVAILABLE_PATH', '/etc/nginx/sites-available'),
     'nginx_sites_enabled_path' => env('BERRYPANEL_NGINX_SITES_ENABLED_PATH', '/etc/nginx/sites-enabled'),

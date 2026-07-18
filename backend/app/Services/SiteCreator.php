@@ -14,6 +14,7 @@ class SiteCreator
         private readonly SiteProvisioner $provisioner,
         private readonly NginxSiteProvisioner $nginx,
         private readonly SiteEnvironmentService $environment,
+        private readonly SystemUserProvisioner $systemUsers,
     ) {}
 
     public function createQueued(User $user, array $data): Site
@@ -24,9 +25,7 @@ class SiteCreator
             throw new RuntimeException('You already have a site with this name.');
         }
 
-        if (! $user->linux_username) {
-            $user->forceFill(['linux_username' => 'user_'.$user->id])->save();
-        }
+        $this->systemUsers->ensure($user);
 
         if (! preg_match('/^[a-z][a-z0-9_-]{2,31}$/', (string) $user->linux_username)) {
             throw new RuntimeException('The user does not have a valid Linux username.');
@@ -40,6 +39,7 @@ class SiteCreator
         }
 
         File::ensureDirectoryExists($root, 0775, true);
+        $this->systemUsers->claimSite($user, $root);
         $localUrl = $this->siteHost($slug);
 
         return Site::create([
@@ -79,9 +79,7 @@ class SiteCreator
             throw new RuntimeException('You already have a site with this name.');
         }
 
-        if (! $user->linux_username) {
-            $user->forceFill(['linux_username' => 'user_'.$user->id])->save();
-        }
+        $this->systemUsers->ensure($user);
 
         $branch = $data['repository_branch'] ?? 'main';
         $phpVersion = $data['php_version'] ?? '8.4';
@@ -90,6 +88,7 @@ class SiteCreator
 
         try {
             $paths = $this->provisioner->provision($user, $slug, $data['repository_url'], $branch, $localUrl);
+            $this->systemUsers->claimSite($user, $paths['root_path']);
             $this->nginx->provision($slug, $localUrl, $paths['public_path'], $phpVersion);
         } catch (RuntimeException $exception) {
             if (isset($paths['root_path'])) {

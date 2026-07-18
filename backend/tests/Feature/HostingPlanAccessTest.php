@@ -39,7 +39,7 @@ test('the four customer plans contain the configured prices and limits', functio
         ->and($plans['free']->price_centavos)->toBe(0)
         ->and($plans['free']->laravel_site_limit)->toBe(2)
         ->and($plans['starter']->price_centavos)->toBe(2000)
-        ->and($plans['starter']->laravel_site_limit)->toBe(1)
+        ->and($plans['starter']->laravel_site_limit)->toBe(2)
         ->and($plans['starter']->background_service_site_limit)->toBe(1)
         ->and($plans['starter']->reverb_site_limit)->toBe(0)
         ->and($plans['pro']->price_centavos)->toBe(3400)
@@ -69,7 +69,7 @@ test('free is the automatic fallback and allows two laravel sites only', functio
         ->toThrow(RuntimeException::class, 'does not include background jobs');
 });
 
-test('starter allows jobs and scheduler on one site but not reverb', function () {
+test('starter allows two laravel sites with jobs and scheduler on one site but not reverb', function () {
     $user = User::factory()->create();
     subscribeForHostingAccessTest($user, 'starter');
     $site = siteForHostingAccessTest($user, 'starter-site');
@@ -88,6 +88,9 @@ test('starter allows jobs and scheduler on one site but not reverb', function ()
         'enabled' => true,
     ]);
     $other = siteForHostingAccessTest($user, 'starter-other');
+
+    expect(fn () => $access->assertCanCreateLaravelSite($user))
+        ->toThrow(RuntimeException::class, 'reached that limit');
 
     expect(fn () => $access->assertCanUseBackgroundServices($user, $other))
         ->toThrow(RuntimeException::class, 'limit is already in use');

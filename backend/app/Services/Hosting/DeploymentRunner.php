@@ -6,6 +6,7 @@ use App\Models\Deployment;
 use App\Models\DeploymentLog;
 use App\Models\Site;
 use App\Services\NginxSiteProvisioner;
+use App\Services\SystemUserProvisioner;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
@@ -13,11 +14,18 @@ use Symfony\Component\Process\Process;
 
 class DeploymentRunner
 {
-    public function __construct(private SitePathResolver $paths, private SecretRedactor $redactor, private EnvironmentManager $env, private NginxSiteProvisioner $nginx, private SupervisorManager $supervisor, private DeploymentBroadcaster $realtime, private ToolEnvironment $tools) {}
+    public function __construct(private SitePathResolver $paths, private SecretRedactor $redactor, private EnvironmentManager $env, private NginxSiteProvisioner $nginx, private SupervisorManager $supervisor, private DeploymentBroadcaster $realtime, private ToolEnvironment $tools, private SystemUserProvisioner $systemUsers) {}
 
     public function run(Deployment $deployment): void
     {
         $site = $deployment->site()->firstOrFail();
+        $site->loadMissing('user');
+
+        if (! $site->user) {
+            throw new RuntimeException('Deployment cannot continue because the site does not have an owner.');
+        }
+
+        $this->systemUsers->ensure($site->user);
         $started = microtime(true);
         $deployment->update(['status' => 'running', 'started_at' => now()]);
         $this->realtime->deployment($deployment);
@@ -49,6 +57,7 @@ class DeploymentRunner
             foreach ([['php', 'artisan', 'storage:link'], ...($site->migrate_on_deploy ? [['php', 'artisan', 'migrate', '--force']] : []), ['php', 'artisan', 'optimize']] as $cmd) {
                 $this->command($deployment, 'laravel', $cmd, $dirs['backend']);
             }
+            $this->systemUsers->claimSite($site->user, $root);
             $nodePort = (int) config('berrypanel.node_port_base', 12000) + $site->id;
             $this->log($deployment, 'node-service', "Starting Node.js production server on internal port {$nodePort}.");
             $this->supervisor->ensureNodeServer($site, $nodePort);
@@ -116,6 +125,7 @@ class DeploymentRunner
             }
             $this->command($deployment, 'laravel', ['php', 'artisan', 'optimize'], $dirs['backend'], allowFailure: true);
             $this->command($deployment, 'permissions', ['chmod', '-R', 'ug+rwX', 'storage', 'bootstrap/cache'], $dirs['backend'], allowFailure: true);
+            $this->systemUsers->claimSite($site->user, $root);
 
             $site->forceFill(['public_path' => $dirs['public']])->save();
             $this->log($deployment, 'nginx', 'Configuring the Laravel web server.');
