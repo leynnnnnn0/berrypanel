@@ -53,32 +53,31 @@ type Plan = {
 const navItems = [
   "Home",
   "Hosting",
-  "Laravel",
+  "Features",
   "Customers",
   "Process",
-  "Solutions",
   "Plans",
 ];
 
 const features: Feature[] = [
   {
-    title: "Ship Laravel Fast",
-    body: "Provision a user, database, PHP-FPM pool, and Nginx route without repeating the same server checklist.",
+    title: "Launch With Confidence",
+    body: "Bring your Laravel website online through a clear, guided experience from start to finish.",
     tone: "cream",
   },
   {
-    title: "Explore The Panel",
-    body: "See sites, deploy history, database access, and server health from one focused dashboard.",
+    title: "Everything In One Place",
+    body: "See your websites, domains, updates, activity, and current status from one simple dashboard.",
     tone: "image",
   },
   {
-    title: "Make Your Site Work",
-    body: "Designed for Laravel with Inertia, Vite assets, storage links, migrations, and production cache flows.",
+    title: "Keep Every Site Healthy",
+    body: "Handle everyday website updates and important maintenance with a workflow your team can follow.",
     tone: "lavender",
   },
   {
-    title: "Optimize Your Stack",
-    body: "Keep queues, Reverb, logs, and deploy scripts controlled by BerryPanel instead of random shell commands.",
+    title: "Support Your Growth",
+    body: "Stay on top of background work, recent activity, and issues as your websites and customers grow.",
     tone: "dark",
   },
 ];
@@ -88,51 +87,51 @@ const testimonials: Testimonial[] = [
     name: "Mika Reyes",
     role: "Laravel developer",
     quote:
-      "BerryPanel gives me a clean place to upload, configure, and run a Laravel app without needing full server access every time.",
+      "BerryPanel gives me one clear place to launch client websites and see what needs attention.",
   },
   {
     name: "Andre Santos",
     role: "Founder, small studio",
     quote:
-      "The shared hosting flow feels simple: database, domain, deploy, and logs are all visible in one panel.",
+      "Our websites, domains, and updates are easy to find. I always know what is live and what comes next.",
   },
   {
     name: "Nia Castillo",
-    role: "Inertia app builder",
+    role: "Product developer",
     quote:
-      "I can build locally, push to Git, and let the server handle composer, Vite builds, migrations, and cache refreshes.",
+      "I can focus on building the customer experience while BerryPanel keeps the launch process organized.",
   },
   {
     name: "Luis Tan",
     role: "Project owner",
     quote:
-      "It is perfect for small production apps where we want real hosting control without renting a large VPS.",
+      "Our team can manage production websites without turning every update into a technical project.",
   },
 ];
 
 const processSteps: ProcessStep[] = [
   {
     icon: CloudUpload,
-    title: "Submit your app",
-    body: "Add the Laravel repository, branch, site name, and preferred domain or subdomain.",
+    title: "Tell us about your site",
+    body: "Add your project, choose its name, and select the web address your customers will visit.",
     step: "Step 1",
   },
   {
     icon: Code2,
-    title: "Prepare hosting",
-    body: "BerryPanel creates the Linux user, site path, database, PHP-FPM pool, and Nginx config.",
+    title: "Review your setup",
+    body: "Confirm the website details and the features your Laravel application needs to run smoothly.",
     step: "Step 2",
   },
   {
     icon: Database,
-    title: "Deploy the build",
-    body: "Composer, npm build, migrations, storage links, and Laravel caches run in a controlled flow.",
+    title: "Publish your website",
+    body: "BerryPanel prepares your application and guides it through one consistent publishing flow.",
     step: "Step 3",
   },
   {
     icon: Rocket,
-    title: "Launch the site",
-    body: "Reload the services, attach the domain, and keep logs available for quick diagnosis.",
+    title: "Manage with confidence",
+    body: "Track its status, review recent activity, and quickly see when something needs your attention.",
     step: "Step 4",
   },
 ];
@@ -140,19 +139,19 @@ const processSteps: ProcessStep[] = [
 const plans: Plan[] = [
   {
     name: "Static",
-    body: "For portfolios, landing pages, and simple public websites with SFTP upload.",
+    body: "For portfolios, landing pages, and straightforward public websites.",
     price: "Free",
     tone: "lavender",
   },
   {
     name: "Laravel",
-    body: "For Inertia apps with PHP-FPM isolation, one database, deploy logs, and storage.",
+    body: "For customer portals and business applications that need a reliable Laravel home.",
     price: "Private",
     tone: "white",
   },
   {
     name: "Managed",
-    body: "For trusted apps that need queues, Reverb, scheduled jobs, and domain support.",
+    body: "For growing applications that need extra automation, monitoring, and hands-on support.",
     price: "Invite",
     tone: "cream",
   },
@@ -176,8 +175,8 @@ const softPop = {
 
 function LogoMark() {
   return (
-    <div className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.01em] text-[#121212]">
-      <div className="relative size-8 overflow-hidden rounded-[4px] bg-black">
+    <div className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.01em] text-[#2F4156]">
+      <div className="relative size-8 overflow-hidden rounded-[4px] bg-[#2F4156]">
         <div className="absolute bottom-0 left-1/2 h-8 w-3 -translate-x-1/2 rotate-45 bg-white" />
         <div className="absolute right-1 top-1 h-5 w-3 -rotate-45 bg-white" />
       </div>
@@ -201,8 +200,8 @@ function PillButton({
 }) {
   const classes = `inline-flex h-11 items-center justify-center rounded-full border px-5 text-[18px] leading-none transition ${
     dark
-      ? "border-black bg-black text-white"
-      : "border-[#767676] bg-white/80 text-[#202020]"
+      ? "border-[#2F4156] bg-[#2F4156] text-white"
+      : "border-[#567C8D] bg-white/80 text-[#2F4156]"
   } ${className}`;
 
   if (href) {
@@ -233,7 +232,7 @@ function Header({ onMenu }: { onMenu: () => void }) {
           type="button"
           onClick={onMenu}
           aria-label="Open navigation"
-          className="grid size-11 place-items-center rounded-full border border-black bg-black text-white"
+          className="grid size-11 place-items-center rounded-full border border-[#2F4156] bg-[#2F4156] text-white"
         >
           <Menu className="size-6" strokeWidth={2} />
         </button>
@@ -242,8 +241,8 @@ function Header({ onMenu }: { onMenu: () => void }) {
       <div className="hidden md:block">
         <LogoMark />
       </div>
-      <div className="hidden items-center gap-3 text-[18px] text-[#5d5d5d] md:flex">
-        <span className="grid size-11 place-items-center rounded-full border border-[#767676] text-[#1c1c1c]">
+      <div className="hidden items-center gap-3 text-[18px] text-[#567C8D] md:flex">
+        <span className="grid size-11 place-items-center rounded-full border border-[#567C8D] text-[#2F4156]">
           EN
         </span>
         <span>PH</span>
@@ -263,7 +262,7 @@ function MenuOverlay({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[1px]"
+          className="fixed inset-0 z-50 bg-[#2F4156]/25 backdrop-blur-[1px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -280,11 +279,11 @@ function MenuOverlay({
               type="button"
               aria-label="Close navigation"
               onClick={onClose}
-              className="grid size-12 place-items-center rounded-full border border-[#777] text-[#303030]"
+              className="grid size-12 place-items-center rounded-full border border-[#567C8D] text-[#2F4156]"
             >
               <X className="size-7" />
             </button>
-            <nav className="mt-32 flex flex-col gap-7 text-[52px] font-normal leading-[0.95] tracking-[-0.05em] text-[#111] md:text-[72px]">
+            <nav className="mt-32 flex flex-col gap-7 text-[52px] font-normal leading-[0.95] tracking-[-0.05em] text-[#2F4156] md:text-[72px]">
               {navItems.map((item, index) => (
                 <motion.a
                   key={item}
@@ -298,7 +297,7 @@ function MenuOverlay({
                 </motion.a>
               ))}
             </nav>
-            <div className="absolute bottom-12 left-12 flex items-center gap-3 text-[18px] text-[#676767] md:left-16">
+            <div className="absolute bottom-12 left-12 flex items-center gap-3 text-[18px] text-[#567C8D] md:left-16">
               <PillButton href="/login">Login</PillButton>
               <PillButton href="/register" dark>
                 Register
@@ -313,54 +312,54 @@ function MenuOverlay({
 
 function BrowserMock() {
   return (
-    <div className="relative h-full min-h-[640px] overflow-hidden rounded-[28px] bg-[#cfc8eb] md:rounded-[34px]">
+    <div className="relative h-full min-h-[640px] overflow-hidden rounded-[28px] bg-[#C8D9E6] md:rounded-[34px]">
       <div className="absolute left-7 top-20 flex gap-4">
-        <div className="grid size-12 place-items-center rounded-full bg-white text-[#5e5e5e]">
+        <div className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <ServerCog className="size-6" />
         </div>
-        <div className="grid size-12 place-items-center rounded-full bg-white text-[#5e5e5e]">
+        <div className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <Globe2 className="size-6" />
         </div>
       </div>
       <motion.div
-        className="absolute bottom-0 left-[13%] h-[34%] w-[68%] rounded-t-[18px] bg-gradient-to-b from-[#111] to-[#333]"
+        className="absolute bottom-0 left-[13%] h-[34%] w-[68%] rounded-t-[18px] bg-gradient-to-b from-[#2F4156] to-[#2F4156]"
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.25, ease: springEase }}
       />
       <motion.div
-        className="absolute bottom-[25%] right-[-2%] h-[300px] w-[58%] rotate-[-7deg] rounded-[20px] border-[10px] border-black bg-white shadow-2xl"
+        className="absolute bottom-[25%] right-[-2%] h-[300px] w-[58%] rotate-[-7deg] rounded-[20px] border-[10px] border-[#2F4156] bg-white shadow-2xl"
         initial={{ x: 80, rotate: -13, opacity: 0 }}
         animate={{ x: 0, rotate: -7, opacity: 1 }}
         transition={{ duration: 0.85, delay: 0.35, ease: springEase }}
       >
-        <div className="h-full overflow-hidden rounded-[10px] bg-[#f4f4f4]">
-          <div className="h-[44%] bg-[linear-gradient(135deg,#111,#777)] opacity-75" />
+        <div className="h-full overflow-hidden rounded-[10px] bg-[#F1F1F1]">
+          <div className="h-[44%] bg-[linear-gradient(135deg,#2F4156,#567C8D)] opacity-75" />
           <div className="space-y-3 p-5">
-            <span className="rounded-full bg-black px-3 py-1 text-xs text-white">
-              Laravel Ready
+            <span className="rounded-full bg-[#2F4156] px-3 py-1 text-xs text-white">
+              Ready To Launch
             </span>
             <div className="text-[34px] leading-[0.95] tracking-[-0.06em]">
-              Provisioned
+              Ready For
               <br />
-              Hosting
+              Customers
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-12 w-20 rounded-xl bg-[#d8cef2]" />
+              <div className="h-12 w-20 rounded-xl bg-[#C8D9E6]" />
               <div className="h-12 w-20 rounded-xl bg-white" />
-              <div className="h-12 w-20 rounded-xl bg-[#fff0b8]" />
+              <div className="h-12 w-20 rounded-xl bg-[#F1F1F1]" />
             </div>
           </div>
         </div>
       </motion.div>
       <div className="absolute bottom-7 right-8 flex items-center gap-4 rounded-full bg-white/95 p-3 shadow-xl">
-        {["DB", "PHP", "SSL"].map((item, index) => (
+        {["SITE", "URL", "SSL"].map((item, index) => (
           <div
             key={item}
             className={`grid size-16 place-items-center rounded-full text-[15px] font-medium ${
               index === 0
-                ? "border-[5px] border-black bg-[#d8cef2]"
-                : "bg-[#e9e9e9]"
+                ? "border-[5px] border-[#2F4156] bg-[#C8D9E6]"
+                : "bg-[#C8D9E6]"
             }`}
           >
             {item}
@@ -372,9 +371,9 @@ function BrowserMock() {
           +
         </span>
         <span className="text-[22px] leading-[1.05] text-white/80">
-          Explore our
+          Explore your
           <br />
-          hosted projects
+          websites
         </span>
       </div>
     </div>
@@ -392,19 +391,19 @@ function HeroCard() {
     >
       <div className="relative flex min-h-[720px] flex-col justify-between px-8 pb-8 pt-28 md:px-12 md:pt-32">
         <div className="mt-16 max-w-[720px] md:mt-20">
-          <h1 className="text-[56px] font-normal leading-[0.92] tracking-[-0.065em] text-[#080808] md:text-[82px] xl:text-[92px]">
-            Make Laravel Sites
+          <h1 className="text-[56px] font-normal leading-[0.92] tracking-[-0.065em] text-[#2F4156] md:text-[72px] xl:text-[76px]">
+            Launch Laravel Sites
             <br />
-            Work{" "}
-            <span className="relative inline-block rounded-xl bg-[#d8cef2] px-3">
-              on Pi
-              <span className="absolute -right-4 bottom-0 -z-0 h-full w-8 rounded-r-xl bg-[#ffef9d]" />
+            With{" "}
+            <span className="relative inline-block rounded-xl bg-[#C8D9E6] px-3">
+              Confidence
+              <span className="absolute -right-4 bottom-0 -z-0 h-full w-8 rounded-r-xl bg-[#F1F1F1]" />
             </span>
           </h1>
           <div className="mt-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <p className="max-w-[410px] text-[22px] leading-[1.05] tracking-[-0.035em] text-[#555]">
-              A tiny control panel for provisioning Laravel, Inertia, databases,
-              and deploys on your own server.
+            <p className="max-w-[410px] text-[22px] leading-[1.05] tracking-[-0.035em] text-[#567C8D]">
+              A simple home for launching, managing, and monitoring your Laravel
+              websites—all in one place.
             </p>
             <PillButton href="/register" dark className="h-14 min-w-40">
               Get Started
@@ -412,26 +411,26 @@ function HeroCard() {
           </div>
         </div>
         <div className="mt-24 grid max-w-[760px] gap-5 md:grid-cols-[1fr_0.42fr]">
-          <div className="relative min-h-[140px] rounded-[20px] bg-[#f5f5f5] p-7">
-            <div className="absolute -top-8 left-24 grid size-28 place-items-center rounded-[22px] bg-[#d8cef2] text-[68px] font-bold text-white">
+          <div className="relative min-h-[140px] rounded-[20px] bg-[#F1F1F1] p-7">
+            <div className="absolute -top-8 left-24 grid size-28 place-items-center rounded-[22px] bg-[#C8D9E6] text-[68px] font-bold text-white">
               B
             </div>
             <div className="absolute right-5 top-5 grid size-12 place-items-center rounded-full bg-white">
               <ArrowUpRight className="size-6" />
             </div>
             <div className="mt-14 flex items-end justify-between">
-              <span className="text-[25px] tracking-[-0.04em] text-[#333]">
-                Laravel Provisioning Test
+              <span className="text-[25px] tracking-[-0.04em] text-[#2F4156]">
+                Your Website Is Ready
               </span>
               <ArrowRight className="size-7" />
             </div>
           </div>
-          <div className="rounded-[20px] bg-[#f5f5f5] p-5">
+          <div className="rounded-[20px] bg-[#F1F1F1] p-5">
             <div className="flex -space-x-3">
-              {["BP", "DB", "NG"].map((item) => (
+              {["BP", "WEB", "SSL"].map((item) => (
                 <div
                   key={item}
-                  className="grid size-11 place-items-center rounded-full border-2 border-white bg-[#d8cef2] text-xs"
+                  className="grid size-11 place-items-center rounded-full border-2 border-white bg-[#C8D9E6] text-xs"
                 >
                   {item}
                 </div>
@@ -440,8 +439,8 @@ function HeroCard() {
             <div className="mt-8 text-[30px] leading-none tracking-[-0.05em]">
               5+
             </div>
-            <p className="mt-2 text-[15px] leading-tight text-[#555]">
-              Friendly sites ready for one Raspberry Pi
+            <p className="mt-2 text-[15px] leading-tight text-[#567C8D]">
+              Everything your team needs in one simple workspace
             </p>
           </div>
         </div>
@@ -457,17 +456,17 @@ function SplitStatement() {
       className="min-h-[620px] bg-white px-8 py-28 text-center"
       {...sectionReveal}
     >
-      <h2 className="mx-auto max-w-[1080px] text-[62px] font-normal leading-[1.18] tracking-[-0.06em] text-[#101010] md:text-[88px]">
-        Local Laravel Hosting
+      <h2 className="mx-auto max-w-[1080px] text-[62px] font-normal leading-[1.18] tracking-[-0.06em] text-[#2F4156] md:text-[88px]">
+        Everything Your Laravel Site Needs
         <br />
-        Without the{" "}
-        <span className="rounded-xl bg-[#f4f4f4] px-3">
-          heavy VPS bill
+        In{" "}
+        <span className="rounded-xl bg-[#F1F1F1] px-3">
+          One Simple Place
         </span>
       </h2>
-      <p className="mx-auto mt-10 max-w-[540px] text-[20px] leading-[1.08] tracking-[-0.035em] text-[#555]">
-        Build the hosting flow once, then let BerryPanel repeat it for every
-        trusted Laravel and Inertia project.
+      <p className="mx-auto mt-10 max-w-[540px] text-[20px] leading-[1.08] tracking-[-0.035em] text-[#567C8D]">
+        From launch to everyday updates, BerryPanel keeps every website clear,
+        organized, and easy to manage.
       </p>
     </motion.section>
   );
@@ -482,21 +481,21 @@ function PerformanceSection() {
     >
       <div className="text-center">
         <div className="inline-flex items-center gap-4">
-          <span className="rounded-full bg-[#f6f6f6] px-6 py-3 text-[18px] text-[#555]">
-            Provisioning Speed
+          <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px] text-[#567C8D]">
+            Faster Launches
           </span>
-          <Clock3 className="size-9 text-[#676767]" />
+          <Clock3 className="size-9 text-[#567C8D]" />
         </div>
-        <h2 className="mx-auto mt-10 max-w-[780px] text-[58px] font-normal leading-[1.05] tracking-[-0.06em] text-[#111] md:text-[76px]">
-          Does Your Server Deploy Laravel Cleanly?
+        <h2 className="mx-auto mt-10 max-w-[780px] text-[58px] font-normal leading-[1.05] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+          From New Project To Live Website, Made Simple.
         </h2>
       </div>
       <div className="relative mx-auto mt-16 grid max-w-[1180px] gap-6 md:grid-cols-2">
-        <CompareCard label="Before BerryPanel" time="Manual" slow />
-        <div className="absolute left-1/2 top-1/2 z-10 hidden size-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-[28px] tracking-[-0.04em] text-[#555] shadow-lg md:grid">
-          00:01
+        <CompareCard label="Without BerryPanel" time="Many" slow />
+        <div className="absolute left-1/2 top-1/2 z-10 hidden size-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-[28px] tracking-[-0.04em] text-[#567C8D] shadow-lg md:grid">
+          VS
         </div>
-        <CompareCard label="After BerryPanel" time="3.1s" />
+        <CompareCard label="With BerryPanel" time="One" />
       </div>
     </motion.section>
   );
@@ -517,38 +516,38 @@ function CompareCard({
       {...softPop}
     >
       <div className="flex items-center justify-between">
-        <span className="rounded-full bg-[#fff0b8] px-6 py-3 text-[18px]">
+        <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
           {label}
         </span>
         <span
           className={`grid size-14 place-items-center rounded-full text-[18px] ${
-            slow ? "bg-[#fafafa]" : "bg-[#caff80]"
+            slow ? "bg-[#F1F1F1]" : "bg-[#caff80]"
           }`}
         >
           {time}
         </span>
       </div>
-      <div className="mx-auto mt-14 h-72 max-w-[520px] rounded-[18px] bg-[#f8f8f8] p-8">
+      <div className="mx-auto mt-14 h-72 max-w-[520px] rounded-[18px] bg-[#F1F1F1] p-8">
         {slow ? (
-          <div className="mt-28 h-28 max-w-[330px] rounded-xl bg-[#ddd6f3] p-5">
+          <div className="mt-28 h-28 max-w-[330px] rounded-xl bg-[#C8D9E6] p-5">
             <div className="size-24 rounded-lg bg-white" />
           </div>
         ) : (
           <div className="h-full rounded-xl bg-white p-6">
             <div className="mb-12 flex justify-end gap-3">
-              {["about", "deploy", "logs"].map((item) => (
+              {["setup", "publish", "manage"].map((item) => (
                 <span
                   key={item}
-                  className="rounded-full bg-[#f0f0f0] px-4 py-2 text-xs"
+                  className="rounded-full bg-[#F1F1F1] px-4 py-2 text-xs"
                 >
                   {item}
                 </span>
               ))}
             </div>
             <div className="grid gap-3">
-              <div className="h-7 w-3/4 rounded-full bg-[#d8cef2]" />
-              <div className="h-7 w-1/2 rounded-full bg-[#fff0b8]" />
-              <div className="h-7 w-2/3 rounded-full bg-[#ededed]" />
+              <div className="h-7 w-3/4 rounded-full bg-[#C8D9E6]" />
+              <div className="h-7 w-1/2 rounded-full bg-[#F1F1F1]" />
+              <div className="h-7 w-2/3 rounded-full bg-[#F1F1F1]" />
             </div>
           </div>
         )}
@@ -560,19 +559,19 @@ function CompareCard({
 function FeatureSection() {
   return (
     <motion.section
-      id="laravel"
+      id="features"
       className="overflow-hidden bg-white px-8 py-14 md:px-14"
       {...sectionReveal}
     >
       <div className="flex items-center justify-between">
-        <div className="flex gap-5 text-[#c6c6c6]">
+        <div className="flex gap-5 text-[#567C8D]">
           <CircleHelp className="size-7" />
           <Share2 className="size-7" />
         </div>
-        <h2 className="text-center text-[54px] font-normal leading-none tracking-[-0.06em] text-[#222] md:text-[72px]">
-          That&apos;s Where We Come In
+        <h2 className="text-center text-[54px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
+          Everything You Need, Right Where You Need It
         </h2>
-        <div className="hidden items-center gap-3 text-[20px] text-[#aaa] md:flex">
+        <div className="hidden items-center gap-3 text-[20px] text-[#567C8D] md:flex">
           Browse Features <ArrowDown className="size-5" />
         </div>
       </div>
@@ -595,10 +594,10 @@ function FeatureSection() {
 
 function FeatureCard({ feature }: { feature: Feature }) {
   const styles = {
-    cream: "bg-[#fff0b8]",
-    image: "bg-[#eeeeee]",
-    lavender: "bg-[#d8cef2]",
-    dark: "bg-[#202020] text-white",
+    cream: "bg-[#F1F1F1]",
+    image: "bg-white border border-[#C8D9E6]",
+    lavender: "bg-[#C8D9E6]",
+    dark: "bg-[#2F4156] text-white",
   };
 
   return (
@@ -615,7 +614,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
           <h3 className="text-[38px] leading-[0.95] tracking-[-0.055em]">
             {feature.title}
           </h3>
-          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white text-black">
+          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white text-[#2F4156]">
             {feature.tone === "cream" ? (
               <Clock3 className="size-7" />
             ) : (
@@ -640,32 +639,32 @@ function TestimonialsSection() {
     >
       <div className="text-center">
         <div className="inline-flex items-center gap-4">
-          <span className="rounded-full bg-[#f6f6f6] px-6 py-3 text-[18px]">
-            Our Customers
+          <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
+            Customer Stories
           </span>
-          <Users className="size-9 text-[#777]" />
+          <Users className="size-9 text-[#567C8D]" />
         </div>
-        <h2 className="mt-10 text-[58px] font-normal leading-[1.02] tracking-[-0.06em] text-[#2b2b2b] md:text-[76px]">
-          Don&apos;t Just Take
+        <h2 className="mt-10 text-[58px] font-normal leading-[1.02] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+          Built For Teams
           <br />
-          Our Word
+          That Want Simplicity
         </h2>
       </div>
       <div className="mt-20 grid gap-7 md:grid-cols-4">
         {testimonials.map((item) => (
           <motion.article
             key={item.name}
-            className="flex min-h-[430px] flex-col justify-between rounded-[24px] bg-[#f4f4f4] p-9"
+            className="flex min-h-[430px] flex-col justify-between rounded-[24px] bg-[#F1F1F1] p-9"
             whileHover={{ y: -8 }}
             transition={{ duration: 0.25 }}
           >
             <div>
               <h3 className="text-[30px] tracking-[-0.05em]">{item.name}</h3>
-              <p className="mt-2 text-[18px] leading-tight text-[#c0c0c0]">
+              <p className="mt-2 text-[18px] leading-tight text-[#567C8D]">
                 {item.role}
               </p>
             </div>
-            <p className="text-[20px] leading-[1.05] tracking-[-0.04em] text-[#333]">
+            <p className="text-[20px] leading-[1.05] tracking-[-0.04em] text-[#2F4156]">
               {item.quote}
             </p>
           </motion.article>
@@ -682,29 +681,29 @@ function ProcessSection() {
       className="bg-white px-8 py-16 md:px-14"
       {...sectionReveal}
     >
-      <h2 className="text-center text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2b2b2b] md:text-[76px]">
-        What&apos;s The BerryPanel Process?
+      <h2 className="text-center text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+        Getting Your Website Live Is Simple
       </h2>
       <div className="mx-auto mt-16 grid max-w-[1400px] gap-7 md:grid-cols-4">
         {processSteps.map((item) => (
           <motion.article
             key={item.step}
-            className="flex min-h-[430px] -rotate-[-1deg] flex-col items-center justify-between rounded-[24px] bg-[#f4f4f4] p-9 text-center even:rotate-[1deg]"
+            className="flex min-h-[430px] -rotate-[-1deg] flex-col items-center justify-between rounded-[24px] bg-[#F1F1F1] p-9 text-center even:rotate-[1deg]"
             whileHover={{ rotate: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="grid h-28 w-full place-items-center rounded-[18px] bg-white text-[#d8cef2]">
+            <div className="grid h-28 w-full place-items-center rounded-[18px] bg-white text-[#567C8D]">
               <item.icon className="size-16" strokeWidth={1.8} />
             </div>
             <div>
               <h3 className="text-[24px] leading-none tracking-[-0.04em]">
                 {item.title}
               </h3>
-              <p className="mx-auto mt-7 max-w-[260px] text-[23px] leading-[0.95] tracking-[-0.055em] text-[#444]">
+              <p className="mx-auto mt-7 max-w-[260px] text-[23px] leading-[0.95] tracking-[-0.055em] text-[#567C8D]">
                 {item.body}
               </p>
             </div>
-            <span className="rounded-full bg-[#d8cef2] px-8 py-3 text-[18px] shadow-[14px_0_0_#fff0b8]">
+            <span className="rounded-full bg-[#C8D9E6] px-8 py-3 text-[18px] shadow-[14px_0_0_#F1F1F1]">
               {item.step}
             </span>
           </motion.article>
@@ -725,24 +724,24 @@ function PricingSection() {
         <div className="flex gap-4">
           <PillButton>Annual</PillButton>
           <PillButton>
-            <span className="mr-3 size-9 rounded-full bg-[#d8cef2]" />
+            <span className="mr-3 size-9 rounded-full bg-[#C8D9E6]" />
             Monthly
           </PillButton>
         </div>
         <div className="text-center">
           <div className="inline-flex items-center gap-4">
-            <span className="rounded-full bg-[#f6f6f6] px-6 py-3 text-[18px]">
-              Our Prices
+            <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
+              Simple Plans
             </span>
-            <CircleDollarSign className="size-9 text-[#777]" />
+            <CircleDollarSign className="size-9 text-[#567C8D]" />
           </div>
-          <h2 className="mt-9 text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2b2b2b] md:text-[76px]">
-            Explore Our Plans
+          <h2 className="mt-9 text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+            Choose What Fits Your Website
           </h2>
         </div>
-        <div className="hidden justify-end gap-5 text-[22px] text-[#444] md:flex">
+        <div className="hidden justify-end gap-5 text-[22px] text-[#567C8D] md:flex">
           See more options
-          <span className="grid size-14 place-items-center rounded-full bg-[#d8cef2]">
+          <span className="grid size-14 place-items-center rounded-full bg-[#C8D9E6]">
             &laquo;
           </span>
         </div>
@@ -758,9 +757,9 @@ function PricingSection() {
 
 function PlanCard({ plan }: { plan: Plan }) {
   const styles = {
-    lavender: "bg-[#d8cef2]",
-    white: "bg-[#f4f4f4]",
-    cream: "bg-[#fff0b8]",
+    lavender: "bg-[#C8D9E6]",
+    white: "bg-white border border-[#C8D9E6]",
+    cream: "bg-[#F1F1F1]",
   };
 
   return (
@@ -773,21 +772,21 @@ function PlanCard({ plan }: { plan: Plan }) {
         B
       </div>
       <div className="relative z-10 flex h-full min-h-[420px] flex-col items-center justify-between">
-        <span className="rounded-full border border-[#777] bg-white/40 px-8 py-3 text-[20px]">
+        <span className="rounded-full border border-[#567C8D] bg-white/40 px-8 py-3 text-[20px]">
           Monthly
         </span>
         <div>
           <h3 className="text-[52px] leading-none tracking-[-0.06em]">
             {plan.name}
           </h3>
-          <p className="mx-auto mt-8 max-w-[360px] text-[23px] leading-[1.05] tracking-[-0.045em] text-[#444]">
+          <p className="mx-auto mt-8 max-w-[360px] text-[23px] leading-[1.05] tracking-[-0.045em] text-[#567C8D]">
             {plan.body}
           </p>
         </div>
         <div className="flex w-full items-center justify-center gap-6">
           <span className="rounded-full bg-white px-9 py-5 text-[38px] leading-none tracking-[-0.06em]">
             {plan.price}
-            <span className="ml-4 text-[18px] tracking-[-0.03em] text-[#555]">
+            <span className="ml-4 text-[18px] tracking-[-0.03em] text-[#567C8D]">
               / setup
             </span>
           </span>
@@ -802,34 +801,34 @@ function PlanCard({ plan }: { plan: Plan }) {
 
 function FinalCta() {
   const tags = [
-    "RESOURCES",
-    "DATABASES",
-    "PRICING",
-    "FEATURES",
+    "WEBSITES",
     "DOMAINS",
+    "UPDATES",
+    "FEATURES",
+    "ACTIVITY",
     "SUPPORT",
-    "TECHNOLOGIES",
-    "LEGAL",
+    "LAUNCH",
+    "SECURITY",
     "TOOLS",
   ];
 
   return (
     <motion.section
-      className="relative min-h-[620px] overflow-hidden bg-[#d8cef2] px-8 py-28 text-center"
+      className="relative min-h-[620px] overflow-hidden bg-[#C8D9E6] px-8 py-28 text-center"
       {...sectionReveal}
     >
       <div className="mx-auto flex w-fit gap-4">
-        <span className="grid size-12 place-items-center rounded-full bg-white text-[#606060]">
+        <span className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <ServerCog className="size-6" />
         </span>
-        <span className="grid size-12 place-items-center rounded-full bg-white text-[#606060]">
+        <span className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <Globe2 className="size-6" />
         </span>
       </div>
-      <h2 className="relative z-10 mx-auto mt-10 max-w-[900px] text-[56px] font-normal leading-[1.08] tracking-[-0.06em] text-[#111] md:text-[76px]">
-        Faster, Fuller Laravel Delivery
+      <h2 className="relative z-10 mx-auto mt-10 max-w-[900px] text-[56px] font-normal leading-[1.08] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
+        Your Next Laravel Website
         <br />
-        For Small Teams
+        Starts Here
       </h2>
       <PillButton
         href="/register"
@@ -846,7 +845,7 @@ function FinalCta() {
           <motion.span
             key={tag}
             className={`absolute rounded-full px-8 py-4 text-[18px] shadow-sm ${
-              index % 2 === 0 ? "bg-[#fff0b8]" : "bg-white"
+              index % 2 === 0 ? "bg-[#F1F1F1]" : "bg-white"
             }`}
             initial={{ y: 24, opacity: 0, rotate: 0 }}
             whileInView={{
@@ -873,7 +872,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-white font-sans text-[#121212]">
+    <main className="min-h-screen bg-white font-sans text-[#2F4156]">
       <MenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="relative flex flex-col">
         <Header onMenu={() => setMenuOpen(true)} />

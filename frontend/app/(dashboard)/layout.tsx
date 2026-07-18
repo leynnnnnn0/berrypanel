@@ -8,7 +8,7 @@ export default function DashboardLayout({
 }: AppLayoutProps) {
   return (
     <AppSidebarLayout breadcrumbs={breadcrumbs} {...props}>
-      <div className="p-4 md:p-6">{children}</div>
+      <div className="p-4 md:p-6 lg:p-8 bg-white">{children}</div>
     </AppSidebarLayout>
   );
 }

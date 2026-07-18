@@ -47,9 +47,9 @@ class SiteEnvironmentService
     {
         $variables = $this->forSite($site);
 
-        foreach (self::KEYS as $key) {
-            if (array_key_exists($key, $input)) {
-                $variables[$key] = $input[$key] ?? '';
+        foreach ($input as $key => $value) {
+            if (is_string($key) && preg_match('/^[A-Z_][A-Z0-9_]*$/i', $key)) {
+                $variables[$key] = $value ?? '';
             }
         }
 

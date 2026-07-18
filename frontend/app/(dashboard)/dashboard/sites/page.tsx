@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   Dialog,
   DialogContent,
@@ -16,20 +19,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import {
   ArrowUpRight,
+  CheckCircle2,
   ExternalLink,
   GitBranch,
   GitFork,
   Globe2,
+  Loader2,
   MoreHorizontal,
   Plus,
-  Terminal,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Site = {
   id: number;
@@ -55,8 +61,8 @@ function StatusPill({ status }: { status: string }) {
     normalized === "online" || normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
       : normalized === "deploying" || normalized === "needs_configuration"
-        ? "bg-[#fff0b8] text-[#5c4b10]"
-        : "bg-[#f4f4f4] text-[#555]";
+        ? "bg-[#F1F1F1] text-[#2F4156]"
+        : "bg-[#F1F1F1] text-[#567C8D]";
   const label =
     status === "provisioned"
       ? "Provisioned"
@@ -75,12 +81,21 @@ function formatRepo(url: string | null) {
   return url ? url.replace("https://github.com/", "") : "No repository";
 }
 
+function siteAddress(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `http://${url}`;
+}
+
 export default function SitesPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [deletingSite, setDeletingSite] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creatingSite, setCreatingSite] = useState(false);
+  const [siteName, setSiteName] = useState("");
+  const [repositoryUrl, setRepositoryUrl] = useState("");
+  const [repositoryBranch, setRepositoryBranch] = useState("main");
 
   useEffect(() => {
     async function loadSites() {
@@ -146,46 +161,66 @@ export default function SitesPage() {
     }
   }
 
+  async function createSite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreatingSite(true);
+    setError("");
+
+    try {
+      const response = await api<{ site: Site }>("/api/sites", {
+        method: "POST",
+        body: JSON.stringify({
+          name: siteName,
+          repository_url: repositoryUrl,
+          repository_branch: repositoryBranch,
+          php_version: "8.4",
+        }),
+      });
+
+      setSites((current) => [response.site, ...current]);
+      setSiteName("");
+      setRepositoryUrl("");
+      setRepositoryBranch("main");
+      setCreateOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create site");
+    } finally {
+      setCreatingSite(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-            <div>
-              <span className="inline-flex rounded-full bg-[#d8cef2] px-4 py-2 text-sm font-medium">
-                Sites Module
-              </span>
-              <h1 className="mt-5 text-5xl font-semibold leading-none md:text-7xl">
-                Laravel Sites
-              </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-6 text-[#666]">
-                Manage your hosted Laravel applications, repository, branch,
-                domain, and deployment status.
-              </p>
-            </div>
-
+    <DashboardPage>
+        <DashboardHero
+          eyebrow="Application inventory · All hosting"
+          title="Sites"
+          description="Manage Laravel and Node.js applications, repositories, branches, domains, and deployment status from one inventory."
+          icon={Globe2}
+          contextValue="Application inventory"
+          action={
             <Button
-              asChild
-              className="h-12 rounded-full bg-black px-5 text-sm font-medium text-white hover:bg-black/85"
+              className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
+              onClick={() => {
+                setError("");
+                setCreateOpen(true);
+              }}
             >
-              <Link href="/dashboard">
-                <Plus className="size-4" />
-                New Laravel Site
-              </Link>
+              <Plus className="size-4" />
+              New Laravel Site
             </Button>
-          </div>
+          }
+        />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-black/5 bg-[#f7f7f7] p-5"
-              >
-                <p className="text-sm text-[#777]">{stat.label}</p>
-                <p className="mt-4 text-4xl font-semibold">{stat.value}</p>
-              </div>
-            ))}
-          </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          {stats.map((stat, index) => {
+            const visuals = [
+              { icon: Globe2, tone: "lavender" as const, detail: "hosted applications" },
+              { icon: GitFork, tone: "sky" as const, detail: "connected repositories" },
+              { icon: CheckCircle2, tone: "mist" as const, detail: "ready for traffic" },
+            ][index];
+
+            return <MetricCard key={stat.label} {...stat} {...visuals} />;
+          })}
         </section>
 
         {error && (
@@ -197,15 +232,15 @@ export default function SitesPage() {
         <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase text-[#8a8a8a]">
+              <p className="text-xs font-medium uppercase text-[#567C8D]">
                 Inventory
               </p>
               <h2 className="mt-1 text-xl font-semibold">All Sites</h2>
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-black/5">
-            <div className="hidden grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] bg-[#f7f7f7] px-5 py-3 text-xs font-medium uppercase text-[#777] lg:grid">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/5">
+            <div className="hidden grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] lg:grid">
               <span>Site</span>
               <span>GitHub</span>
               <span>Domain</span>
@@ -214,13 +249,13 @@ export default function SitesPage() {
             </div>
 
             {loading && (
-              <div className="border-t border-black/5 px-5 py-6 text-sm text-[#777]">
+              <div className="border-t border-[#2F4156]/5 px-5 py-6 text-sm text-[#567C8D]">
                 Loading sites...
               </div>
             )}
 
             {!loading && sites.length === 0 && (
-              <div className="border-t border-black/5 px-5 py-8 text-sm text-[#777]">
+              <div className="border-t border-[#2F4156]/5 px-5 py-8 text-sm text-[#567C8D]">
                 No sites yet. Create your first Laravel site from the overview.
               </div>
             )}
@@ -229,12 +264,12 @@ export default function SitesPage() {
               sites.map((site, index) => (
                 <div
                   key={site.id}
-                  className="flex flex-col gap-4 border-t border-black/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] lg:items-center"
+                  className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] lg:items-center"
                 >
                   <div className="flex items-center gap-3">
                     <span
                       className={`grid size-11 place-items-center rounded-xl ${
-                        index % 2 === 0 ? "bg-[#d8cef2]" : "bg-[#fff0b8]"
+                        index % 2 === 0 ? "bg-[#C8D9E6]" : "bg-[#F1F1F1]"
                       }`}
                     >
                       <Globe2 className="size-5" />
@@ -246,7 +281,7 @@ export default function SitesPage() {
                       >
                         {site.name}
                       </Link>
-                      <p className="text-xs text-[#777]">
+                      <p className="text-xs text-[#567C8D]">
                         {site.stack} / PHP {site.php_version}
                       </p>
                     </div>
@@ -257,7 +292,7 @@ export default function SitesPage() {
                       href={site.repository_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex min-w-0 items-center gap-2 text-[#555] hover:text-black"
+                      className="flex min-w-0 items-center gap-2 text-[#567C8D] hover:text-[#2F4156]"
                     >
                       <GitFork className="size-4 shrink-0" />
                       <span className="truncate">
@@ -266,30 +301,32 @@ export default function SitesPage() {
                       <ExternalLink className="size-3 shrink-0" />
                     </a>
                   ) : (
-                    <span className="text-[#777]">{formatRepo(null)}</span>
+                    <span className="text-[#567C8D]">{formatRepo(null)}</span>
                   )}
 
-                  <span className="break-words text-[#555]">
-                    {site.local_url ?? "Pending local domain"}
-                  </span>
+                  {site.local_url ? (
+                    <a
+                      href={siteAddress(site.local_url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-w-0 items-center gap-1 break-words text-[#567C8D] hover:text-[#2F4156] hover:underline"
+                    >
+                      {site.local_url}
+                      <ExternalLink className="size-3 shrink-0" />
+                    </a>
+                  ) : (
+                    <span className="text-[#567C8D]">Pending local domain</span>
+                  )}
 
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusPill status={site.status} />
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#555]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F1F1] px-3 py-1 text-xs text-[#567C8D]">
                       <GitBranch className="size-3" />
                       {site.repository_branch || "main"}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-9 rounded-full px-3"
-                    >
-                      <Terminal className="size-4" />
-                      Deploy
-                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -336,7 +373,40 @@ export default function SitesPage() {
               ))}
           </div>
         </section>
-      </div>
+
+      <Dialog open={createOpen} onOpenChange={(open) => !creatingSite && setCreateOpen(open)}>
+        <DialogContent className="overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="bg-[#C8D9E6] p-7 pr-14">
+            <DialogTitle className="text-3xl">New Laravel Site</DialogTitle>
+            <DialogDescription>
+              Connect a public GitHub repository and BerryPanel will prepare the site.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={createSite}>
+            <div className="grid gap-5 p-7">
+              {error && <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="new-site-name">Site name</Label>
+                <Input id="new-site-name" value={siteName} onChange={(event) => setSiteName(event.target.value)} placeholder="my-laravel-site" pattern="[A-Za-z0-9][A-Za-z0-9 -]*[A-Za-z0-9]" required disabled={creatingSite} className="h-12 rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-site-repository">Public GitHub URL</Label>
+                <Input id="new-site-repository" type="url" value={repositoryUrl} onChange={(event) => setRepositoryUrl(event.target.value)} placeholder="https://github.com/user/laravel-app" pattern="https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?" required disabled={creatingSite} className="h-12 rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-site-branch">Branch</Label>
+                <Input id="new-site-branch" value={repositoryBranch} onChange={(event) => setRepositoryBranch(event.target.value)} placeholder="main" pattern="[A-Za-z0-9._/-]+" required disabled={creatingSite} className="h-12 rounded-xl" />
+              </div>
+            </div>
+            <DialogFooter className="border-t border-[#2F4156]/10 p-6">
+              <Button type="button" variant="outline" className="rounded-full" disabled={creatingSite} onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button type="submit" className="rounded-full bg-[#2F4156] text-white" disabled={creatingSite}>
+                {creatingSite ? <><Loader2 className="animate-spin" />Creating site...</> : <><Plus />Create site</>}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!siteToDelete} onOpenChange={() => setSiteToDelete(null)}>
         <DialogContent className="max-w-lg">
@@ -344,7 +414,7 @@ export default function SitesPage() {
             <DialogTitle>Delete Laravel Site?</DialogTitle>
             <DialogDescription>
               This will remove{" "}
-              <span className="font-medium text-[#151515]">
+              <span className="font-medium text-[#2F4156]">
                 {siteToDelete?.name}
               </span>{" "}
               from BerryPanel. This action cannot be undone.
@@ -372,6 +442,6 @@ export default function SitesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPage>
   );
 }

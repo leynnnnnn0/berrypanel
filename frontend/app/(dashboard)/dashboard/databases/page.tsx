@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   Dialog,
   DialogContent,
@@ -79,7 +82,7 @@ function StatusPill({ status }: { status: string }) {
   const tone =
     normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : "bg-[#f4f4f4] text-[#555]";
+      : "bg-[#F1F1F1] text-[#567C8D]";
 
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
@@ -217,34 +220,25 @@ export default function DatabasesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <span className="inline-flex rounded-full bg-[#d8cef2] px-4 py-2 text-sm font-medium">
-                Database Module
-              </span>
-              <h1 className="mt-5 text-5xl font-semibold leading-none md:text-7xl">
-                Database Management
-              </h1>
-              <p className="mt-5 max-w-3xl text-lg leading-6 text-[#666]">
-                Create MySQL databases and users for your Laravel applications,
-                then copy the credentials into each site&apos;s environment page.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[520px]">
-              {stats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border border-black/5 bg-[#f7f7f7] p-5"
-                >
-                  <p className="text-sm text-[#777]">{stat.label}</p>
-                  <p className="mt-4 text-3xl font-semibold">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+    <DashboardPage>
+        <DashboardHero
+          eyebrow="Data services · MySQL management"
+          title="Database Management"
+          description="Create MySQL databases and users for Laravel applications, then copy credentials into each site's environment configuration."
+          icon={Database}
+          contextValue="MySQL workspace"
+        />
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {stats.map((stat, index) => {
+            const visuals = [
+              { icon: Database, tone: "lavender" as const, detail: "managed databases" },
+              { icon: Globe2, tone: "sky" as const, detail: "connected applications" },
+              { icon: ServerCog, tone: "mist" as const, detail: "database engine" },
+            ][index];
+
+            return <MetricCard key={stat.label} {...stat} {...visuals} />;
+          })}
         </section>
 
         {(error || success) && (
@@ -258,15 +252,15 @@ export default function DatabasesPage() {
         )}
 
         <section className="rounded-3xl bg-white shadow-sm">
-          <div className="flex items-center gap-3 border-b border-black/5 p-6 lg:p-8">
-            <span className="grid size-10 place-items-center rounded-full bg-[#f7f7f7]">
+          <div className="flex items-center gap-3 border-b border-[#2F4156]/5 p-6 lg:p-8">
+            <span className="grid size-10 place-items-center rounded-full bg-[#F1F1F1]">
               <Plus className="size-5" />
             </span>
             <div>
               <h2 className="text-2xl font-semibold">
                 Create a New MySQL Database And Database User
               </h2>
-              <p className="mt-1 text-sm text-[#777]">
+              <p className="mt-1 text-sm text-[#567C8D]">
                 Names are automatically prefixed with your Linux username.
               </p>
             </div>
@@ -277,8 +271,8 @@ export default function DatabasesPage() {
               <Label htmlFor="database-name" className="text-base font-semibold">
                 MySQL database name
               </Label>
-              <div className="grid overflow-hidden rounded-2xl border border-black/10 bg-white md:grid-cols-[300px_1fr]">
-                <div className="bg-[#f1f1f1] px-5 py-4 text-[#999]">
+              <div className="grid overflow-hidden rounded-2xl border border-[#2F4156]/10 bg-white md:grid-cols-[300px_1fr]">
+                <div className="bg-[#F1F1F1] px-5 py-4 text-[#567C8D]">
                   {prefix}
                 </div>
                 <Input
@@ -290,7 +284,7 @@ export default function DatabasesPage() {
                   className="h-14 rounded-none border-0 px-5 text-base shadow-none"
                 />
               </div>
-              <p className="font-mono text-xs text-[#888]">
+              <p className="font-mono text-xs text-[#567C8D]">
                 Full name: {fullDatabaseName}
               </p>
             </div>
@@ -299,8 +293,8 @@ export default function DatabasesPage() {
               <Label htmlFor="database-user" className="text-base font-semibold">
                 MySQL username
               </Label>
-              <div className="grid overflow-hidden rounded-2xl border border-black/10 bg-white md:grid-cols-[300px_1fr]">
-                <div className="bg-[#f1f1f1] px-5 py-4 text-[#999]">
+              <div className="grid overflow-hidden rounded-2xl border border-[#2F4156]/10 bg-white md:grid-cols-[300px_1fr]">
+                <div className="bg-[#F1F1F1] px-5 py-4 text-[#567C8D]">
                   {prefix}
                 </div>
                 <Input
@@ -312,7 +306,7 @@ export default function DatabasesPage() {
                   className="h-14 rounded-none border-0 px-5 text-base shadow-none"
                 />
               </div>
-              <p className="font-mono text-xs text-[#888]">
+              <p className="font-mono text-xs text-[#567C8D]">
                 Full username: {fullUsername}
               </p>
             </div>
@@ -321,7 +315,7 @@ export default function DatabasesPage() {
               <Label htmlFor="database-password" className="text-base font-semibold">
                 Password
               </Label>
-              <div className="flex overflow-hidden rounded-2xl border border-black/10 bg-white">
+              <div className="flex overflow-hidden rounded-2xl border border-[#2F4156]/10 bg-white">
                 <Input
                   id="database-password"
                   type={showPassword ? "text" : "password"}
@@ -334,7 +328,7 @@ export default function DatabasesPage() {
                 />
                 <button
                   type="button"
-                  className="grid w-14 place-items-center text-[#777]"
+                  className="grid w-14 place-items-center text-[#567C8D]"
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
@@ -355,7 +349,7 @@ export default function DatabasesPage() {
                 id="database-site"
                 value={selectedSiteId}
                 onChange={(event) => setSelectedSiteId(event.target.value)}
-                className="h-14 rounded-2xl border border-black/10 bg-white px-5 text-base outline-none"
+                className="h-14 rounded-2xl border border-[#2F4156]/10 bg-white px-5 text-base outline-none"
               >
                 <option value="">No linked website yet</option>
                 {sites.map((site) => (
@@ -368,7 +362,7 @@ export default function DatabasesPage() {
 
             <Button
               type="submit"
-              className="h-12 w-fit rounded-2xl bg-[#6d3ff2] px-6 text-base text-white hover:bg-[#5c31d6]"
+              className="h-12 w-fit rounded-2xl bg-[#567C8D] px-6 text-base text-white hover:bg-[#567C8D]"
               disabled={creating}
             >
               <Check className="size-5" />
@@ -379,7 +373,7 @@ export default function DatabasesPage() {
 
         <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
           <div>
-            <p className="text-xs font-medium uppercase text-[#8a8a8a]">
+            <p className="text-xs font-medium uppercase text-[#567C8D]">
               Inventory
             </p>
             <h2 className="mt-1 text-2xl font-semibold">
@@ -387,8 +381,8 @@ export default function DatabasesPage() {
             </h2>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-black/10">
-            <div className="hidden grid-cols-[1fr_1fr_0.8fr_1fr_1fr_0.4fr] bg-[#f7f7f7] px-5 py-4 text-sm font-medium uppercase text-[#777] lg:grid">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/10">
+            <div className="hidden grid-cols-[1fr_1fr_0.8fr_1fr_1fr_0.4fr] bg-[#F1F1F1] px-5 py-4 text-sm font-medium uppercase text-[#567C8D] lg:grid">
               <span>MySQL Database</span>
               <span>MySQL User</span>
               <span>Created at</span>
@@ -398,13 +392,13 @@ export default function DatabasesPage() {
             </div>
 
             {loading && (
-              <div className="border-t border-black/5 px-5 py-6 text-sm text-[#777]">
+              <div className="border-t border-[#2F4156]/5 px-5 py-6 text-sm text-[#567C8D]">
                 Loading databases...
               </div>
             )}
 
             {!loading && databases.length === 0 && (
-              <div className="border-t border-black/5 px-5 py-8 text-sm text-[#777]">
+              <div className="border-t border-[#2F4156]/5 px-5 py-8 text-sm text-[#567C8D]">
                 No databases yet. Create your first database for a Laravel site.
               </div>
             )}
@@ -413,10 +407,10 @@ export default function DatabasesPage() {
               databases.map((database) => (
                 <div
                   key={database.id}
-                  className="flex flex-col gap-4 border-t border-black/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1fr_1fr_0.8fr_1fr_1fr_0.4fr] lg:items-center"
+                  className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1fr_1fr_0.8fr_1fr_1fr_0.4fr] lg:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-11 place-items-center rounded-xl bg-[#fff0b8]">
+                    <span className="grid size-11 place-items-center rounded-xl bg-[#F1F1F1]">
                       <Database className="size-5" />
                     </span>
                     <div className="min-w-0">
@@ -427,7 +421,7 @@ export default function DatabasesPage() {
 
                   <button
                     type="button"
-                    className="flex min-w-0 items-center gap-2 text-left text-[#555]"
+                    className="flex min-w-0 items-center gap-2 text-left text-[#567C8D]"
                     onClick={() => copyText(database.username)}
                   >
                     <KeyRound className="size-4 shrink-0" />
@@ -435,18 +429,18 @@ export default function DatabasesPage() {
                     <Copy className="size-3 shrink-0" />
                   </button>
 
-                  <span className="text-[#666]">
+                  <span className="text-[#567C8D]">
                     {database.created_at ?? "Today"}
                   </span>
 
-                  <span className="flex min-w-0 items-center gap-2 text-[#555]">
+                  <span className="flex min-w-0 items-center gap-2 text-[#567C8D]">
                     <Globe2 className="size-4 shrink-0" />
                     <span className="truncate">
                       {database.site?.local_url ?? database.site?.name ?? "Unlinked"}
                     </span>
                   </span>
 
-                  <span className="flex min-w-0 items-center gap-2 text-[#555]">
+                  <span className="flex min-w-0 items-center gap-2 text-[#567C8D]">
                     <ServerCog className="size-4 shrink-0" />
                     <span className="truncate">
                       {database.driver}://{database.host}:{database.port}
@@ -490,7 +484,6 @@ export default function DatabasesPage() {
               ))}
           </div>
         </section>
-      </div>
 
       <Dialog
         open={!!databaseToDelete}
@@ -501,7 +494,7 @@ export default function DatabasesPage() {
             <DialogTitle>Delete Database?</DialogTitle>
             <DialogDescription>
               This will remove{" "}
-              <span className="font-medium text-[#151515]">
+              <span className="font-medium text-[#2F4156]">
                 {databaseToDelete?.name}
               </span>{" "}
               and its database user from BerryPanel. If MariaDB provisioning is
@@ -530,6 +523,6 @@ export default function DatabasesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPage>
   );
 }

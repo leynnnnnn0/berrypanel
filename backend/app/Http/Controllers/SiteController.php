@@ -77,6 +77,7 @@ class SiteController extends Controller
 
         $request->validate([
             'variables' => ['required', 'array'],
+            'variables.*' => ['nullable', 'string', 'max:10000'],
             'variables.APP_NAME' => ['nullable', 'string', 'max:120'],
             'variables.APP_ENV' => ['nullable', 'string', 'in:local,staging,production'],
             'variables.APP_KEY' => ['nullable', 'string', 'max:120'],

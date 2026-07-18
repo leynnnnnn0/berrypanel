@@ -1,9 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import { CustomerServiceControls } from "@/components/hosting/customer-service-controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import {
   ArrowLeft,
@@ -15,14 +26,15 @@ import {
   GitFork,
   Globe2,
   Loader2,
+  ListChecks,
   SendHorizontal,
   ServerCog,
   Terminal,
-  X,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from "react";
 
 type EnvVariables = Record<string, string>;
@@ -121,26 +133,37 @@ const mailFields = [
   { key: "MAIL_FROM_NAME", label: "From name", placeholder: "BerryPanel" },
 ];
 
-function StatusPill({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
-  const tone =
-    normalized === "online" || normalized === "provisioned"
-      ? "bg-[#dff8c8] text-[#2c4a1f]"
-      : normalized === "deploying" || normalized === "needs_configuration"
-        ? "bg-[#fff0b8] text-[#5c4b10]"
-        : "bg-[#f4f4f4] text-[#555]";
-  const label =
-    normalized === "provisioned"
-      ? "Provisioned"
-      : normalized === "needs_configuration"
-        ? "Needs configuration"
-        : status;
+const commonEnvironmentKeys = new Set(
+  [...appFields, ...databaseFields, ...runtimeFields, ...mailFields].map((field) => field.key),
+);
 
-  return (
-    <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>
-      {label}
-    </span>
-  );
+function siteAddress(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `http://${url}`;
+}
+
+function parseEnvironmentFile(content: string): EnvVariables {
+  return content.split(/\r?\n/).reduce<EnvVariables>((variables, rawLine) => {
+    const line = rawLine.trim().replace(/^export\s+/, "");
+
+    if (!line || line.startsWith("#") || !line.includes("=")) {
+      return variables;
+    }
+
+    const separator = line.indexOf("=");
+    const key = line.slice(0, separator).trim();
+    let value = line.slice(separator + 1).trim();
+
+    if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) {
+      return variables;
+    }
+
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    variables[key] = value;
+    return variables;
+  }, {});
 }
 
 function EnvField({
@@ -154,7 +177,7 @@ function EnvField({
 }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={field.key} className="text-sm text-[#555]">
+      <Label htmlFor={field.key} className="text-sm text-[#567C8D]">
         {field.label}
       </Label>
       <Input
@@ -164,9 +187,9 @@ function EnvField({
         placeholder={field.placeholder}
         autoComplete="off"
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 rounded-2xl border-black/10 bg-white px-4 text-base"
+        className="h-12 rounded-2xl border-[#2F4156]/10 bg-white px-4 text-base"
       />
-      <p className="font-mono text-[11px] uppercase text-[#999]">{field.key}</p>
+      <p className="font-mono text-[11px] uppercase text-[#567C8D]">{field.key}</p>
     </div>
   );
 }
@@ -188,7 +211,7 @@ function EnvSection({
     <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">{title}</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#666]">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#567C8D]">
           {description}
         </p>
       </div>
@@ -216,11 +239,14 @@ export default function SiteShowPage() {
   const [clearingWarnings, setClearingWarnings] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [nextStepsOpen, setNextStepsOpen] = useState(false);
   const [command, setCommand] = useState("");
   const [commandRunning, setCommandRunning] = useState(false);
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const additionalVariables = Object.entries(variables).filter(
+    ([key]) => !commonEnvironmentKeys.has(key),
+  );
 
   useEffect(() => {
     async function loadSite() {
@@ -312,9 +338,7 @@ export default function SiteShowPage() {
     ]);
   }
 
-  function openConsole() {
-    setConsoleOpen(true);
-
+  function initializeTerminal() {
     if (terminalLines.length === 0 && site) {
       setTerminalLines([
         {
@@ -323,6 +347,32 @@ export default function SiteShowPage() {
           text: `Connected to ${site.slug}. Run Laravel Artisan maintenance commands here. Persistent features such as background jobs, realtime updates, and scheduled tasks are managed from Keep your application running.`,
         },
       ]);
+    }
+  }
+
+  async function uploadEnvironment(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const uploaded = parseEnvironmentFile(await file.text());
+      const count = Object.keys(uploaded).length;
+
+      if (count === 0) {
+        throw new Error("The selected file does not contain valid environment values.");
+      }
+
+      setVariables((current) => ({ ...current, ...uploaded }));
+      setError("");
+      setSuccess(`${count} environment values loaded. Review them, then save changes.`);
+    } catch (err) {
+      setSuccess("");
+      setError(err instanceof Error ? err.message : "Unable to read the environment file");
+    } finally {
+      event.target.value = "";
     }
   }
 
@@ -378,384 +428,198 @@ export default function SiteShowPage() {
 
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#f5f5f5] text-[#555]">
+      <DashboardPage className="grid min-h-[50vh] place-items-center text-[#567C8D]">
         <span className="inline-flex items-center gap-2">
           <Loader2 className="size-4 animate-spin" />
           Loading site...
         </span>
-      </div>
+      </DashboardPage>
     );
   }
 
   if (!site) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] p-6 text-[#121212]">
-        <div className="rounded-3xl bg-white p-8 shadow-sm">
+      <DashboardPage>
+        <section className="rounded-3xl bg-white p-8 shadow-sm">
           <p className="text-red-600">{error || "Site not found."}</p>
-          <Button asChild className="mt-5 rounded-full bg-black text-white">
+          <Button asChild className="mt-5 rounded-full bg-[#2F4156] text-white">
             <Link href="/dashboard/sites">
               <ArrowLeft className="size-4" />
               Back to sites
             </Link>
           </Button>
-        </div>
-      </div>
+        </section>
+      </DashboardPage>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <Button
-                asChild
-                variant="outline"
-                className="h-10 rounded-full px-4"
-              >
-                <Link href="/dashboard/sites">
-                  <ArrowLeft className="size-4" />
-                  Sites
-                </Link>
-              </Button>
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <span className="inline-flex rounded-full bg-[#d8cef2] px-4 py-2 text-sm font-medium">
-                  Laravel Site
-                </span>
-                <StatusPill status={site.status} />
-              </div>
-              <h1 className="mt-5 text-5xl font-semibold leading-none md:text-7xl">
-                {site.name}
-              </h1>
-              <p className="mt-5 max-w-3xl text-lg leading-6 text-[#666]">
-                Manage your application settings, deployment status, and
-                database connection.
-              </p>
-            </div>
-
-            <div className="grid gap-3 rounded-3xl bg-[#f7f7f7] p-4 text-sm text-[#555] xl:min-w-[420px]">
-              <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <Globe2 className="size-4" />
-                  Local URL
-                </span>
-                <span className="text-right font-medium text-[#151515]">
-                  {site.local_url ?? "Pending"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <GitBranch className="size-4" />
-                  Branch
-                </span>
-                <span className="font-medium text-[#151515]">
-                  {site.repository_branch || "main"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <ServerCog className="size-4" />
-                  PHP
-                </span>
-                <span className="font-medium text-[#151515]">
-                  {site.php_version}
-                </span>
-              </div>
-              <Button
-                type="button"
-                className="mt-2 h-11 rounded-full bg-black text-white hover:bg-black/85"
-                onClick={openConsole}
-              >
-                <Terminal className="size-4" />
-                Open terminal
-              </Button>
-            </div>
+    <DashboardPage>
+      <DashboardHero
+        eyebrow={`Laravel site · ${site.status}`}
+        title={site.name}
+        description="Manage application settings, deployment status, runtime services, and database connections from one workspace."
+        icon={Globe2}
+        contextLabel="Application address"
+        contextValue={
+          site.local_url ? (
+            <a href={siteAddress(site.local_url)} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 truncate hover:underline">
+              <span className="truncate">{site.local_url}</span>
+              <ExternalLink className="size-3 shrink-0" />
+            </a>
+          ) : "Pending local URL"
+        }
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="h-11 rounded-full border-white/20 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white">
+              <Link href="/dashboard/sites"><ArrowLeft className="size-4" />Sites</Link>
+            </Button>
+            <Button type="button" className="h-11 rounded-full bg-white px-5 text-[#2F4156] hover:bg-white/90" onClick={() => setNextStepsOpen(true)}>
+              <ListChecks className="size-4" />What&apos;s next
+            </Button>
           </div>
-        </section>
+        }
+      />
 
-        {(error || success) && (
-          <div
-            className={`rounded-2xl px-4 py-3 text-sm ${
-              error ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"
-            }`}
-          >
-            {error || success}
-          </div>
-        )}
+      {(error || success) && (
+        <div className={`rounded-2xl px-4 py-3 text-sm ${error ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
+          {error || success}
+        </div>
+      )}
 
-        {site.deployment_warnings.length > 0 && (
-          <section className="rounded-3xl border border-[#f4df9a] bg-[#fffaf0] p-5 text-[#6b5516] shadow-sm lg:p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-[#171717]">
-                  Deploy warning saved
-                </h2>
-                <p className="mt-2 text-sm leading-6">
-                  BerryPanel saved this from the last automatic deploy. If you
-                  already fixed it in SSH and the site works, clear the warning.
-                </p>
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="services">Application Services</TabsTrigger>
+          <TabsTrigger value="environment">Environment</TabsTrigger>
+          <TabsTrigger value="terminal" onClick={initializeTerminal}>Terminal</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <section className="grid gap-4 md:grid-cols-3">
+            <MetricCard label="Status" value={site.status} detail="deployment state" icon={ServerCog} tone="lavender" />
+            <MetricCard label="Branch" value={site.repository_branch || "main"} detail="deployment source" icon={GitBranch} tone="sky" />
+            <MetricCard label="PHP" value={site.php_version} detail="application runtime" icon={FileKey2} tone="mist" />
+          </section>
+
+          {site.deployment_warnings.length > 0 && (
+            <section className="rounded-3xl bg-[#F5EFEB] p-6 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Deployment needs attention</h2>
+                  <p className="mt-2 text-sm leading-6 text-[#567C8D]">Review the saved warning. Clear it after the issue has been resolved.</p>
+                </div>
+                <Button type="button" variant="outline" className="rounded-full bg-white" disabled={clearingWarnings} onClick={clearDeploymentWarnings}>
+                  {clearingWarnings ? <><Loader2 className="animate-spin" />Clearing...</> : "Clear warning"}
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 shrink-0 rounded-full bg-white px-4"
-                disabled={clearingWarnings}
-                onClick={clearDeploymentWarnings}
-              >
-                {clearingWarnings ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Clearing...
-                  </>
-                ) : (
-                  "Clear warning"
-                )}
-              </Button>
+              <div className="mt-4 grid gap-3">
+                {site.deployment_warnings.map((warning) => <p key={warning} className="max-h-32 overflow-y-auto rounded-2xl bg-white p-4 text-sm">{warning}</p>)}
+              </div>
+            </section>
+          )}
+
+          <section className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
+              <p className="text-xs font-medium uppercase text-[#567C8D]">Setup guide</p>
+              <h2 className="mt-2 text-2xl font-semibold">Finish setting up your site</h2>
+              <p className="mt-3 text-sm leading-6 text-[#567C8D]">Database, environment, and runtime guidance is available without taking over the page.</p>
+              <Button type="button" className="mt-6 rounded-full bg-[#2F4156] text-white" onClick={() => setNextStepsOpen(true)}><ListChecks />View what&apos;s next</Button>
             </div>
-            <div className="mt-4 grid gap-3">
-              {site.deployment_warnings.map((warning) => (
-                <p
-                  key={warning}
-                  className="max-h-32 overflow-y-auto break-words rounded-2xl bg-white/75 px-4 py-3 text-sm leading-5 [overflow-wrap:anywhere]"
-                >
-                  {warning}
-                </p>
-              ))}
+            <div className="rounded-3xl bg-[#C8D9E6] p-6 shadow-sm lg:p-8">
+              <p className="text-xs font-medium uppercase text-[#567C8D]">Repository</p>
+              <h2 className="mt-2 text-2xl font-semibold">GitHub source</h2>
+              <p className="mt-3 text-sm leading-6 text-[#567C8D]">Future deployments use the connected repository and {site.repository_branch || "main"} branch.</p>
+              {site.repository_url && <Button asChild variant="outline" className="mt-6 rounded-full bg-white/80"><a href={site.repository_url} target="_blank" rel="noopener noreferrer"><GitFork />Open repository<ExternalLink /></a></Button>}
             </div>
           </section>
-        )}
+        </TabsContent>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-[#fff0b8] p-6 shadow-sm">
-            <span className="grid size-10 place-items-center rounded-full bg-white/80">
-              <Database className="size-5" />
-            </span>
-            <h2 className="mt-4 text-xl font-semibold">1. Create database</h2>
-            <p className="mt-2 text-sm leading-6 text-[#66551c]">
-              Create a MySQL database for this site, then copy the database
-              name, username, and password.
-            </p>
-            <Button asChild className="mt-5 rounded-full bg-black text-white">
-              <Link href="/dashboard/databases">Open databases</Link>
-            </Button>
-          </div>
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <span className="grid size-10 place-items-center rounded-full bg-[#d8cef2]">
-              <FileKey2 className="size-5" />
-            </span>
-            <h2 className="mt-4 text-xl font-semibold">2. Configure .env</h2>
-            <p className="mt-2 text-sm leading-6 text-[#666]">
-              Paste app and database credentials below. BerryPanel writes them
-              to this site&apos;s `.env` file on the Pi.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <span className="grid size-10 place-items-center rounded-full bg-[#dff8c8]">
-              <CheckCircle2 className="size-5" />
-            </span>
-            <h2 className="mt-4 text-xl font-semibold">3. Finish runtime</h2>
-            <p className="mt-2 text-sm leading-6 text-[#666]">
-              After saving `.env`, the app has Composer dependencies, frontend
-              assets, storage link, and app key prepared.
-            </p>
-          </div>
-        </section>
+        <TabsContent value="services">
+          <CustomerServiceControls
+            siteId={siteId}
+            services={services}
+            onChanged={(service) => setServices((current) => current.some((item) => item.id === service.id) ? current.map((item) => item.id === service.id ? service : item) : [service, ...current])}
+          />
+        </TabsContent>
 
-        <CustomerServiceControls
-          siteId={siteId}
-          services={services}
-          onChanged={(service) =>
-            setServices((current) =>
-              current.some((item) => item.id === service.id)
-                ? current.map((item) => (item.id === service.id ? service : item))
-                : [service, ...current],
-            )
-          }
-        />
-
-        <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
-            <div className="flex items-center gap-3">
-              <FileKey2 className="size-6" />
-              <h2 className="text-2xl font-semibold">Environment file</h2>
+        <TabsContent value="environment" className="space-y-6">
+          <section className="flex flex-col gap-4 rounded-3xl bg-[#C8D9E6] p-6 shadow-sm md:flex-row md:items-center md:justify-between lg:p-8">
+            <div>
+              <p className="text-xs font-medium uppercase text-[#567C8D]">Environment file</p>
+              <h2 className="mt-2 text-2xl font-semibold">Configure your application</h2>
+              <p className="mt-2 text-sm text-[#567C8D]">Edit common settings below or upload an existing .env file with additional values.</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-[#666]">
-              Your values are stored securely and are available only to this
-              application.
-            </p>
-          </div>
+            <div>
+              <Label htmlFor="environment-upload" className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full bg-white px-5 font-medium text-[#2F4156] shadow-sm hover:bg-white/90"><Upload className="size-4" />Upload .env file</Label>
+              <Input id="environment-upload" type="file" accept=".env,text/plain" className="sr-only" onChange={uploadEnvironment} />
+            </div>
+          </section>
 
-          <div className="rounded-3xl bg-[#d8cef2] p-6 shadow-sm lg:p-8">
-            <p className="text-xs font-medium uppercase text-[#5d5278]">
-              Repository
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">GitHub deploy source</h2>
-            <p className="mt-3 text-sm leading-6 text-[#4f4861]">
-              BerryPanel uses the public repository connected during site
-              creation. Future deployments use the selected branch.
-            </p>
-            {site.repository_url && (
-              <Button
-                asChild
-                variant="outline"
-                className="mt-6 h-11 rounded-full bg-white/70 px-5"
-              >
-                <a
-                  href={site.repository_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <GitFork className="size-4" />
-                  Open repository
-                  <ExternalLink className="size-4" />
-                </a>
-              </Button>
-            )}
-          </div>
-        </section>
+          <EnvSection title="App credentials" description="Set the Laravel runtime values your application reads from APP_* and logging variables." fields={appFields} variables={variables} setVariable={setVariable} />
+          <EnvSection title="Database credentials" description="Use the database name, user, and password created for this site." fields={databaseFields} variables={variables} setVariable={setVariable} />
+          <EnvSection title="Runtime services" description="Control cache, queue, and session drivers for the application." fields={runtimeFields} variables={variables} setVariable={setVariable} />
+          <EnvSection title="Mail credentials" description="Optional configuration for password resets, notifications, and application email." fields={mailFields} variables={variables} setVariable={setVariable} />
 
-        <EnvSection
-          title="App credentials"
-          description="Set the Laravel runtime values your application reads from APP_* and logging variables."
-          fields={appFields}
-          variables={variables}
-          setVariable={setVariable}
-        />
-
-        <EnvSection
-          title="Database credentials"
-          description="Use the database name, user, and password provisioned for this site. These values are saved into the site's .env file."
-          fields={databaseFields}
-          variables={variables}
-          setVariable={setVariable}
-        />
-
-        <EnvSection
-          title="Runtime services"
-          description="Control cache, queue, and session drivers for Laravel, Inertia, queues, and background jobs."
-          fields={runtimeFields}
-          variables={variables}
-          setVariable={setVariable}
-        />
-
-        <EnvSection
-          title="Mail credentials"
-          description="Optional SMTP or logging configuration for password resets, notifications, and app emails."
-          fields={mailFields}
-          variables={variables}
-          setVariable={setVariable}
-        />
-
-        <div className="sticky bottom-0 -mx-0 border-t border-black/5 bg-[#f5f5f5]/90 py-4 backdrop-blur">
-          <div className="mx-auto flex max-w-[1500px] flex-col gap-3 rounded-3xl bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-            <span className="inline-flex items-center gap-2 text-sm text-[#666]">
-              <CheckCircle2 className="size-4 text-[#7a5cff]" />
-              Changes are saved securely for this application.
-            </span>
-            <Button
-              type="button"
-              className="h-12 rounded-full bg-black px-6 text-white hover:bg-black/85"
-              disabled={saving}
-              onClick={saveEnvironment}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save .env credentials"
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {consoleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6">
-          <section className="flex h-[min(760px,calc(100vh-2rem))] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-[#101010] shadow-2xl">
-            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-4 text-white sm:px-6">
-              <div>
-                <p className="text-xs font-medium uppercase text-white/45">
-                  BerryPanel terminal
-                </p>
-                <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold">
-                  <Terminal className="size-5" />
-                  {site.name}
-                </h2>
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="rounded-full text-white hover:bg-white/10 hover:text-white"
-                onClick={() => setConsoleOpen(false)}
-              >
-                <X className="size-5" />
-              </Button>
-            </header>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4 font-mono text-sm sm:px-6">
-              <div className="space-y-3">
-                {terminalLines.map((line) => (
-                  <pre
-                    key={line.id}
-                    className={`whitespace-pre-wrap break-words rounded-2xl px-4 py-3 leading-6 [overflow-wrap:anywhere] ${
-                      line.kind === "input"
-                        ? "bg-white/5 text-[#98fb98]"
-                        : line.kind === "error"
-                          ? "bg-red-500/10 text-red-300"
-                          : line.kind === "system"
-                            ? "bg-[#d8cef2]/10 text-[#d8cef2]"
-                            : "bg-white/[0.03] text-white/80"
-                    }`}
-                  >
-                    {line.text}
-                  </pre>
+          {additionalVariables.length > 0 && (
+            <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
+              <h2 className="text-2xl font-semibold">Additional environment values</h2>
+              <p className="mt-2 text-sm leading-6 text-[#567C8D]">These application-specific values were loaded from your environment file.</p>
+              <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {additionalVariables.map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`custom-${key}`} className="font-mono text-xs text-[#567C8D]">{key}</Label>
+                    <Input id={`custom-${key}`} type={/(password|secret|token|key)/i.test(key) ? "password" : "text"} value={value} autoComplete="off" className="h-12 rounded-2xl" onChange={(event) => setVariable(key, event.target.value)} />
+                  </div>
                 ))}
-                {commandRunning && (
-                  <p className="inline-flex items-center gap-2 text-white/50">
-                    <Loader2 className="size-4 animate-spin" />
-                    Running command...
-                  </p>
-                )}
+              </div>
+            </section>
+          )}
+
+          <div className="flex flex-col gap-3 rounded-3xl bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+            <span className="inline-flex items-center gap-2 text-sm text-[#567C8D]"><CheckCircle2 className="size-4" />Changes are stored securely for this application.</span>
+            <Button type="button" className="h-12 rounded-full bg-[#2F4156] px-6 text-white" disabled={saving} onClick={saveEnvironment}>
+              {saving ? <><Loader2 className="animate-spin" />Saving...</> : "Save environment"}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="terminal">
+          <section className="flex h-[620px] max-h-[70vh] flex-col overflow-hidden rounded-3xl bg-[#2F4156] shadow-xl">
+            <header className="border-b border-white/10 px-5 py-4 text-white">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/45">BerryPanel terminal</p>
+              <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold"><Terminal className="size-5" />{site.name}</h2>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 font-mono text-sm">
+              <div className="space-y-3">
+                {terminalLines.map((line) => <pre key={line.id} className={`whitespace-pre-wrap break-words rounded-2xl px-4 py-3 leading-6 ${line.kind === "input" ? "bg-white/5 text-[#98fb98]" : line.kind === "error" ? "bg-red-500/10 text-red-300" : line.kind === "system" ? "bg-[#C8D9E6]/10 text-[#C8D9E6]" : "bg-white/[0.03] text-white/80"}`}>{line.text}</pre>)}
+                {commandRunning && <p className="inline-flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" />Running command...</p>}
               </div>
             </div>
-
-            <form
-              className="border-t border-white/10 bg-black/30 p-3 sm:p-4"
-              onSubmit={runConsoleCommand}
-            >
+            <form className="border-t border-white/10 p-4" onSubmit={runConsoleCommand}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <span className="shrink-0 font-mono text-sm text-[#98fb98]">
-                  user@{site.slug}:~/sites/{site.slug}$
-                </span>
-                <Input
-                  value={command}
-                  disabled={commandRunning}
-                  autoComplete="off"
-                  placeholder="Type an approved command"
-                  className="h-11 rounded-full border-white/10 bg-white/10 px-4 font-mono text-sm text-white placeholder:text-white/35 focus-visible:ring-white/30"
-                  onChange={(event) => setCommand(event.target.value)}
-                />
-                <Button
-                  type="submit"
-                  disabled={commandRunning || command.trim() === ""}
-                  className="h-11 rounded-full bg-white px-5 text-black hover:bg-white/90"
-                >
-                  {commandRunning ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <SendHorizontal className="size-4" />
-                  )}
-                  Run
-                </Button>
+                <span className="shrink-0 font-mono text-sm text-[#98fb98]">user@{site.slug}:~/sites/{site.slug}$</span>
+                <Input value={command} disabled={commandRunning} autoComplete="off" placeholder="Type an approved command" className="h-11 rounded-full border-white/10 bg-white/10 px-4 font-mono text-sm text-white placeholder:text-white/35" onChange={(event) => setCommand(event.target.value)} />
+                <Button type="submit" disabled={commandRunning || command.trim() === ""} className="h-11 rounded-full bg-white px-5 text-[#2F4156]">{commandRunning ? <Loader2 className="animate-spin" /> : <SendHorizontal />}Run</Button>
               </div>
             </form>
           </section>
-        </div>
-      )}
-    </div>
+        </TabsContent>
+      </Tabs>
+
+      <Sheet open={nextStepsOpen} onOpenChange={setNextStepsOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto bg-white p-0 sm:max-w-lg">
+          <SheetHeader className="bg-[#C8D9E6] p-7 pr-14 text-left">
+            <SheetTitle className="text-3xl font-semibold text-[#2F4156]">What&apos;s next</SheetTitle>
+            <SheetDescription>Complete these steps when your site needs its initial configuration.</SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-4 p-6">
+            <div className="rounded-2xl bg-[#F5EFEB] p-5"><span className="grid size-10 place-items-center rounded-full bg-white"><Database /></span><h3 className="mt-4 font-semibold">1. Create a database</h3><p className="mt-2 text-sm leading-6 text-[#567C8D]">Create a database, then copy its name, username, and password.</p><Button asChild className="mt-4 rounded-full"><Link href="/dashboard/databases">Open databases</Link></Button></div>
+            <div className="rounded-2xl bg-[#F5EFEB] p-5"><span className="grid size-10 place-items-center rounded-full bg-white"><FileKey2 /></span><h3 className="mt-4 font-semibold">2. Configure the environment</h3><p className="mt-2 text-sm leading-6 text-[#567C8D]">Use the Environment tab to enter values or upload your existing .env file.</p></div>
+            <div className="rounded-2xl bg-[#F5EFEB] p-5"><span className="grid size-10 place-items-center rounded-full bg-white"><CheckCircle2 /></span><h3 className="mt-4 font-semibold">3. Verify the application</h3><p className="mt-2 text-sm leading-6 text-[#567C8D]">Save the environment, check the site address, and review any deployment warning.</p></div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </DashboardPage>
   );
 }

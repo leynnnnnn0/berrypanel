@@ -9,9 +9,9 @@ function AuthLogo() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.01em] text-[#121212]"
+      className="flex items-center gap-3 text-[22px] font-semibold tracking-[-0.01em] text-[#2F4156]"
     >
-      <span className="relative size-8 overflow-hidden rounded-[4px] bg-black">
+      <span className="relative size-8 overflow-hidden rounded-[4px] bg-[#2F4156]">
         <span className="absolute bottom-0 left-1/2 h-8 w-3 -translate-x-1/2 rotate-45 bg-white" />
         <span className="absolute right-1 top-1 h-5 w-3 -rotate-45 bg-white" />
       </span>
@@ -22,38 +22,38 @@ function AuthLogo() {
 
 function AuthVisual({ mode }: { mode: "login" | "register" }) {
   return (
-    <aside className="relative hidden min-h-screen overflow-hidden bg-[#d8cef2] p-10 lg:block">
+    <aside className="relative hidden min-h-screen overflow-hidden bg-[#C8D9E6] p-10 lg:block">
       <div className="absolute left-10 top-10 flex gap-4">
-        <span className="grid size-12 place-items-center rounded-full bg-white text-[#5e5e5e]">
+        <span className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <ServerCog className="size-6" />
         </span>
-        <span className="grid size-12 place-items-center rounded-full bg-white text-[#5e5e5e]">
+        <span className="grid size-12 place-items-center rounded-full bg-white text-[#567C8D]">
           <Globe2 className="size-6" />
         </span>
       </div>
-      <div className="absolute right-10 top-10 flex items-center gap-3 text-[18px] text-[#5d5d5d]">
-        <span className="grid size-11 place-items-center rounded-full border border-[#767676] text-[#1c1c1c]">
+      <div className="absolute right-10 top-10 flex items-center gap-3 text-[18px] text-[#567C8D]">
+        <span className="grid size-11 place-items-center rounded-full border border-[#567C8D] text-[#2F4156]">
           EN
         </span>
         <span>PH</span>
       </div>
 
       <motion.div
-        className="absolute bottom-0 left-[14%] h-[36%] w-[68%] rounded-t-[18px] bg-gradient-to-b from-[#111] to-[#333]"
+        className="absolute bottom-0 left-[14%] h-[36%] w-[68%] rounded-t-[18px] bg-gradient-to-b from-[#2F4156] to-[#2F4156]"
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
       />
       <motion.div
-        className="absolute bottom-[24%] right-[-5%] h-[330px] w-[62%] rotate-[-7deg] rounded-[24px] border-[10px] border-black bg-white shadow-2xl"
+        className="absolute bottom-[24%] right-[-5%] h-[330px] w-[62%] rotate-[-7deg] rounded-[24px] border-[10px] border-[#2F4156] bg-white shadow-2xl"
         initial={{ x: 80, rotate: -13, opacity: 0 }}
         animate={{ x: 0, rotate: -7, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="h-full overflow-hidden rounded-[14px] bg-[#f4f4f4]">
-          <div className="h-[42%] bg-[linear-gradient(135deg,#111,#777)] opacity-75" />
+        <div className="h-full overflow-hidden rounded-[14px] bg-[#F1F1F1]">
+          <div className="h-[42%] bg-[linear-gradient(135deg,#2F4156,#567C8D)] opacity-75" />
           <div className="space-y-4 p-6">
-            <span className="rounded-full bg-black px-3 py-1 text-xs text-white">
+            <span className="rounded-full bg-[#2F4156] px-3 py-1 text-xs text-white">
               {mode === "login" ? "Control Panel" : "Customer Access"}
             </span>
             <div className="text-[38px] leading-[0.95] tracking-[-0.06em]">
@@ -72,9 +72,9 @@ function AuthVisual({ mode }: { mode: "login" | "register" }) {
               )}
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="h-14 rounded-xl bg-[#d8cef2]" />
+              <div className="h-14 rounded-xl bg-[#C8D9E6]" />
               <div className="h-14 rounded-xl bg-white" />
-              <div className="h-14 rounded-xl bg-[#fff0b8]" />
+              <div className="h-14 rounded-xl bg-[#F1F1F1]" />
             </div>
           </div>
         </div>
@@ -86,8 +86,8 @@ function AuthVisual({ mode }: { mode: "login" | "register" }) {
             key={item}
             className={`grid size-16 place-items-center rounded-full text-[15px] font-medium ${
               index === 0
-                ? "border-[5px] border-black bg-[#d8cef2]"
-                : "bg-[#e9e9e9]"
+                ? "border-[5px] border-[#2F4156] bg-[#C8D9E6]"
+                : "bg-[#C8D9E6]"
             }`}
           >
             {item}
@@ -119,13 +119,13 @@ export function AuthShell({
   mode: "login" | "register";
 }) {
   return (
-    <main className="min-h-screen bg-white text-[#121212]">
+    <main className="min-h-screen bg-white text-[#2F4156]">
       <div className="grid min-h-screen lg:grid-cols-[0.52fr_0.48fr]">
         <section className="relative flex min-h-screen flex-col px-7 py-7 md:px-12">
           <header className="flex items-center justify-between">
             <Link
               href="/"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-[#767676] px-5 text-[18px]"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-[#567C8D] px-5 text-[18px]"
             >
               <ArrowLeft className="size-5" />
               Home
@@ -140,17 +140,17 @@ export function AuthShell({
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="mb-10 flex items-center gap-3">
-              <span className="rounded-full bg-[#f6f6f6] px-6 py-3 text-[18px] text-[#555]">
+              <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px] text-[#567C8D]">
                 {eyebrow}
               </span>
-              <span className="grid size-12 place-items-center rounded-full bg-[#d8cef2]">
+              <span className="grid size-12 place-items-center rounded-full bg-[#C8D9E6]">
                 B
               </span>
             </div>
             <h1 className="text-[56px] font-normal leading-[0.94] tracking-[-0.065em] md:text-[76px]">
               {title}
             </h1>
-            <p className="mt-6 max-w-[440px] text-[22px] leading-[1.08] tracking-[-0.04em] text-[#555]">
+            <p className="mt-6 max-w-[440px] text-[22px] leading-[1.08] tracking-[-0.04em] text-[#567C8D]">
               {subtitle}
             </p>
             <div className="mt-10">{children}</div>

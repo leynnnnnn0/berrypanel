@@ -13,12 +13,19 @@ export function UserInfo({
   user: UserInfoUser;
   showEmail?: boolean;
 }) {
+  const initials = user.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "BP";
+
   return (
     <>
       <Avatar className="h-8 w-8 overflow-hidden rounded-full">
         <AvatarImage src={user.avatar} alt={user.name} />
-        <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-          TODO
+        <AvatarFallback className="rounded-full bg-[#C8D9E6] font-semibold text-[#2F4156]">
+          {initials}
         </AvatarFallback>
       </Avatar>
       <div className="grid flex-1 text-left text-sm leading-tight">

@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
         <AppLogo />
         <div className="text-center">
           <h3 className="text-xl font-bold">Forgot your password?</h3>
-          <h6 className="text-black/40 text-sm">
+          <h6 className="text-[#2F4156]/40 text-sm">
             Enter your email and we&apos;ll send you a reset link
           </h6>
         </div>
@@ -68,11 +68,11 @@ export default function ForgotPasswordPage() {
           </Button>
         </form>
 
-        <p className="text-sm text-black/40">
+        <p className="text-sm text-[#2F4156]/40">
           Remembered it?{" "}
           <Link
             href="/login"
-            className="text-black font-medium hover:underline"
+            className="text-[#2F4156] font-medium hover:underline"
           >
             Back to login
           </Link>

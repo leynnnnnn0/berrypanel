@@ -399,7 +399,7 @@ export const domainGuides = [
 export const safetyNotes = [
   "The site terminal supports common Laravel deployment and maintenance commands for the selected site.",
   "Terminal commands apply only to the selected site.",
-  "The current plan includes 25 GB of storage. The dashboard shows usage and file counts.",
+  "Each user includes 1.2 GB of storage. The dashboard shows usage and file counts.",
   "Deleting a site removes deployed files and the BerryPanel site record. Database deletion is managed separately unless stated during deletion.",
   "Long-running workers, queues, and realtime services require a managed process feature before they can run continuously.",
 ];

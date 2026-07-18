@@ -53,49 +53,49 @@ export default function RegisterPage() {
       subtitle="Request access to host Laravel and Inertia projects on your BerryPanel server."
       mode="register"
     >
-      <div className="rounded-[26px] bg-[#f6f6f6] p-5 md:p-7">
+      <div className="rounded-[26px] bg-[#F1F1F1] p-5 md:p-7">
         <form onSubmit={handleRegister} className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#333]">Name</Label>
+            <Label className="text-[16px] text-[#2F4156]">Name</Label>
             <Input
               name="name"
               type="text"
               placeholder="Juan dela Cruz"
               required
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#333]">Email</Label>
+            <Label className="text-[16px] text-[#2F4156]">Email</Label>
             <Input
               name="email"
               type="email"
               placeholder="email@example.com"
               required
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#333]">Password</Label>
+            <Label className="text-[16px] text-[#2F4156]">Password</Label>
             <Input
               name="password"
               type="password"
               placeholder="••••••••"
               required
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#333]">Confirm Password</Label>
+            <Label className="text-[16px] text-[#2F4156]">Confirm Password</Label>
             <Input
               name="password_confirmation"
               type="password"
               placeholder="••••••••"
               required
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
@@ -107,16 +107,16 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            className="h-14 w-full rounded-full bg-black text-[17px] text-white hover:bg-black/85"
+            className="h-14 w-full rounded-full bg-[#2F4156] text-[17px] text-white hover:bg-[#2F4156]/85"
             disabled={loading}
           >
             {loading ? "Creating account..." : "Create account"}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-[15px] text-[#777]">
+        <p className="mt-6 text-center text-[15px] text-[#567C8D]">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-black">
+          <Link href="/login" className="font-medium text-[#2F4156]">
             Log in
           </Link>
         </p>

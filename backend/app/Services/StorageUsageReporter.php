@@ -14,7 +14,7 @@ class StorageUsageReporter
 {
     public function forUser(User $user): array
     {
-        $quotaBytes = max(1, (int) config('berrypanel.storage_quota_gb', 25)) * 1024 * 1024 * 1024;
+        $quotaBytes = (int) round(max(0.1, (float) config('berrypanel.storage_quota_gb', 1.2)) * 1024 * 1024 * 1024);
         $siteModels = $user->sites()->latest()->get();
 
         $sites = $siteModels

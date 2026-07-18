@@ -56,31 +56,31 @@ function LoginPageContent() {
       subtitle="Sign in to manage Laravel sites, databases, deployments, and server status."
       mode="login"
     >
-      <div className="rounded-[26px] bg-[#f6f6f6] p-5 md:p-7">
+      <div className="rounded-[26px] bg-[#F1F1F1] p-5 md:p-7">
         {wasReset && (
-          <p className="mb-4 rounded-2xl bg-[#d8cef2] px-4 py-3 text-sm text-[#252525]">
+          <p className="mb-4 rounded-2xl bg-[#C8D9E6] px-4 py-3 text-sm text-[#2F4156]">
             Password reset successfully. Please log in.
           </p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label className="text-[16px] text-[#333]">Email</Label>
+            <Label className="text-[16px] text-[#2F4156]">Email</Label>
             <Input
               required
               name="email"
               type="email"
               placeholder="email@example.com"
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[16px] text-[#333]">Password</Label>
+              <Label className="text-[16px] text-[#2F4156]">Password</Label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-[#555] underline-offset-4 hover:underline"
+                className="text-sm text-[#567C8D] underline-offset-4 hover:underline"
               >
                 Forgot Password
               </Link>
@@ -90,7 +90,7 @@ function LoginPageContent() {
               name="password"
               type="password"
               placeholder="••••••••"
-              className="h-14 rounded-full border-[#d8d8d8] bg-white px-6 text-[17px]"
+              className="h-14 rounded-full border-[#C8D9E6] bg-white px-6 text-[17px]"
             />
           </div>
 
@@ -103,7 +103,7 @@ function LoginPageContent() {
           <FieldGroup>
             <Field orientation="horizontal" className="gap-3">
               <Checkbox id="remember" name="remember" />
-              <FieldLabel htmlFor="remember" className="text-[#555]">
+              <FieldLabel htmlFor="remember" className="text-[#567C8D]">
                 Remember Me
               </FieldLabel>
             </Field>
@@ -111,16 +111,16 @@ function LoginPageContent() {
 
           <Button
             type="submit"
-            className="h-14 w-full rounded-full bg-black text-[17px] text-white hover:bg-black/85"
+            className="h-14 w-full rounded-full bg-[#2F4156] text-[17px] text-white hover:bg-[#2F4156]/85"
             disabled={loading}
           >
             {loading ? "Logging in..." : "Login to BerryPanel"}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-[15px] text-[#777]">
+        <p className="mt-6 text-center text-[15px] text-[#567C8D]">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-medium text-black">
+          <Link href="/register" className="font-medium text-[#2F4156]">
             Create customer account
           </Link>
         </p>

@@ -50,7 +50,7 @@ function ResetPasswordPageContent() {
         <AppLogo />
         <div className="text-center">
           <h3 className="text-xl font-bold">Reset your password</h3>
-          <h6 className="text-black/40 text-sm">
+          <h6 className="text-[#2F4156]/40 text-sm">
             Enter your new password below
           </h6>
         </div>

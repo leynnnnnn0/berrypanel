@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { MetricCard } from "@/components/dashboard/metric-card";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +20,7 @@ import {
   ExternalLink,
   KeyRound,
   Loader2,
+  ServerCog,
   ShieldCheck,
   Terminal,
 } from "lucide-react";
@@ -41,7 +45,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
     <button
       type="button"
       aria-label={`Copy ${label}`}
-      className="grid size-9 place-items-center rounded-full text-[#7047f5] transition hover:bg-[#f0ecff]"
+      className="grid size-9 place-items-center rounded-full text-[#567C8D] transition hover:bg-[#C8D9E6]"
       onClick={copyValue}
     >
       <Copy className="size-5" />
@@ -59,10 +63,10 @@ function DetailRow({
   canCopy?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-5 border-t border-black/10 py-6 first:border-t-0">
-      <span className="text-[#666]">{label}</span>
+    <div className="flex items-center justify-between gap-5 border-t border-[#2F4156]/10 py-6 first:border-t-0">
+      <span className="text-[#567C8D]">{label}</span>
       <div className="flex min-w-0 items-center gap-4">
-        <span className="truncate text-right font-semibold text-[#151515]">
+        <span className="truncate text-right font-semibold text-[#2F4156]">
           {value}
         </span>
         {canCopy && <CopyButton value={value} label={label} />}
@@ -156,14 +160,20 @@ export default function SshAccessPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <section>
-          <h1 className="text-5xl font-semibold leading-none">SSH Access</h1>
-          <p className="mt-4 max-w-2xl text-lg leading-6 text-[#666]">
-            Add your SSH public key to access your BerryPanel workspace and run
-            Laravel commands like migrations, queues, and key generation.
-          </p>
+    <DashboardPage>
+        <DashboardHero
+          eyebrow="Secure access · Command workspace"
+          title="SSH Access"
+          description="Add your SSH public key to access the BerryPanel workspace and run Laravel migrations, queues, and maintenance commands."
+          icon={KeyRound}
+          contextValue="Key-based server access"
+        />
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Connection" value={loading?"...":enabled?"Enabled":"Disabled"} detail={host} icon={ServerCog} tone="lavender" />
+          <MetricCard label="Port" value={port} detail="secure shell port" icon={Terminal} tone="sky" />
+          <MetricCard label="Username" value={username} detail="server account" icon={KeyRound} tone="mist" />
+          <MetricCard label="Authentication" value={enabled?"Public key":"Pending"} detail="passwordless access" icon={ShieldCheck} tone="slate" />
         </section>
 
         {error && (
@@ -179,14 +189,14 @@ export default function SshAccessPage() {
         )}
 
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.6fr]">
-          <div className="overflow-hidden rounded-3xl border border-black/10 bg-white">
+          <div className="overflow-hidden rounded-3xl border border-[#2F4156]/10 bg-white">
             <div className="flex items-center gap-3 px-6 py-5">
               <KeyRound className="size-6" />
               <h2 className="text-2xl font-semibold">SSH details</h2>
             </div>
-            <div className="border-t border-black/10 px-6">
+            <div className="border-t border-[#2F4156]/10 px-6">
               {loading ? (
-                <div className="flex items-center gap-3 py-10 text-[#666]">
+                <div className="flex items-center gap-3 py-10 text-[#567C8D]">
                   <Loader2 className="size-5 animate-spin" />
                   Loading SSH details
                 </div>
@@ -203,11 +213,11 @@ export default function SshAccessPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-black/10 bg-white p-6">
+          <div className="rounded-3xl border border-[#2F4156]/10 bg-white p-6">
             <div className="flex items-start justify-between gap-5">
               <div>
                 <h2 className="text-2xl font-semibold">SSH status</h2>
-                <p className="mt-5 text-base leading-6 text-[#666]">
+                <p className="mt-5 text-base leading-6 text-[#567C8D]">
                   Key-based SSH lets you log in without BerryPanel storing or
                   showing a server password.
                 </p>
@@ -216,7 +226,7 @@ export default function SshAccessPage() {
                 className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   enabled
                     ? "bg-[#dff8c8] text-[#15713b]"
-                    : "bg-[#f1f1f1] text-[#666]"
+                    : "bg-[#F1F1F1] text-[#567C8D]"
                 }`}
               >
                 {enabled ? "ACTIVE" : "OFF"}
@@ -225,7 +235,7 @@ export default function SshAccessPage() {
             <Button
               type="button"
               variant="outline"
-              className="mt-6 h-11 rounded-xl px-5 text-[#7047f5]"
+              className="mt-6 h-11 rounded-xl px-5 text-[#567C8D]"
               disabled={!enabled || saving}
               onClick={() => setDisableOpen(true)}
             >
@@ -234,8 +244,8 @@ export default function SshAccessPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-3xl border border-black/10 bg-white">
-          <div className="flex items-center justify-between gap-4 border-b border-black/10 px-6 py-5">
+        <section className="overflow-hidden rounded-3xl border border-[#2F4156]/10 bg-white">
+          <div className="flex items-center justify-between gap-4 border-b border-[#2F4156]/10 px-6 py-5">
             <div className="flex items-center gap-3">
               <ShieldCheck className="size-6" />
               <h2 className="text-2xl font-semibold">Public key</h2>
@@ -257,15 +267,15 @@ export default function SshAccessPage() {
               ].map(([step, title, command]) => (
                 <div
                   key={step}
-                  className="rounded-2xl border border-black/10 bg-[#f7f7f7] p-4"
+                  className="rounded-2xl border border-[#2F4156]/10 bg-[#F1F1F1] p-4"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="grid size-8 place-items-center rounded-full bg-black text-sm font-semibold text-white">
+                    <span className="grid size-8 place-items-center rounded-full bg-[#2F4156] text-sm font-semibold text-white">
                       {step}
                     </span>
                     <h3 className="font-semibold">{title}</h3>
                   </div>
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 font-mono text-xs text-[#333]">
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 font-mono text-xs text-[#2F4156]">
                     <span className="break-all">{command}</span>
                     {step !== "3" && (
                       <CopyButton value={command} label={`${title} command`} />
@@ -281,19 +291,19 @@ export default function SshAccessPage() {
               value={publicKey}
               onChange={(event) => setPublicKey(event.target.value)}
               placeholder="Paste the output of: cat ~/.ssh/berrypanel.pub"
-              className="mt-3 min-h-36 w-full resize-y rounded-2xl border border-black/10 bg-white px-4 py-3 font-mono text-sm outline-none transition focus:border-[#7047f5] focus:ring-4 focus:ring-[#7047f5]/10"
+              className="mt-3 min-h-36 w-full resize-y rounded-2xl border border-[#2F4156]/10 bg-white px-4 py-3 font-mono text-sm outline-none transition focus:border-[#567C8D] focus:ring-4 focus:ring-[#567C8D]/10"
             />
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <Button
                 type="button"
-                className="h-11 rounded-full bg-black px-6 text-white hover:bg-black/90"
+                className="h-11 rounded-full bg-[#2F4156] px-6 text-white hover:bg-[#2F4156]/90"
                 disabled={saving || publicKey.trim() === ""}
                 onClick={enableSsh}
               >
                 {saving && <Loader2 className="size-4 animate-spin" />}
                 {enabled ? "Update SSH Key" : "Enable SSH"}
               </Button>
-              <p className="text-sm text-[#666]">
+              <p className="text-sm text-[#567C8D]">
                 BerryPanel installs this key on the server. The private key
                 stays only on your own device.
               </p>
@@ -301,13 +311,13 @@ export default function SshAccessPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-3xl border border-black/10 bg-white">
-          <div className="flex items-center justify-between gap-4 border-b border-black/10 px-6 py-5">
+        <section className="overflow-hidden rounded-3xl border border-[#2F4156]/10 bg-white">
+          <div className="flex items-center justify-between gap-4 border-b border-[#2F4156]/10 px-6 py-5">
             <h2 className="text-2xl font-semibold">Log in to SSH</h2>
             <Button
               type="button"
               variant="ghost"
-              className="rounded-full text-[#7047f5]"
+              className="rounded-full text-[#567C8D]"
             >
               <ExternalLink className="size-4" />
               How to log in?
@@ -315,14 +325,14 @@ export default function SshAccessPage() {
           </div>
 
           <div className="grid gap-0 lg:grid-cols-2">
-            <div className="p-6 lg:border-r lg:border-black/10">
+            <div className="p-6 lg:border-r lg:border-[#2F4156]/10">
               <h3 className="text-xl font-semibold">
                 Use a built-in terminal on your device
               </h3>
-              <p className="mt-4 text-base leading-6 text-[#666]">
+              <p className="mt-4 text-base leading-6 text-[#567C8D]">
                 After SSH is enabled, paste this command into your terminal.
               </p>
-              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#f0ecff] px-6 py-5 font-mono text-sm">
+              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#C8D9E6] px-6 py-5 font-mono text-sm">
                 <span className="break-all">{sshCommand}</span>
                 <CopyButton value={sshCommand} label="SSH command" />
               </div>
@@ -330,10 +340,10 @@ export default function SshAccessPage() {
 
             <div className="p-6">
               <h3 className="text-xl font-semibold">Run Laravel commands</h3>
-              <p className="mt-4 text-base leading-6 text-[#666]">
+              <p className="mt-4 text-base leading-6 text-[#567C8D]">
                 Go into your site folder, then run the commands your app needs.
               </p>
-              <div className="mt-6 rounded-2xl bg-[#151515] p-5 font-mono text-sm leading-7 text-white">
+              <div className="mt-6 rounded-2xl bg-[#2F4156] p-5 font-mono text-sm leading-7 text-white">
                 <p>cd sites/your-site</p>
                 <p>php artisan migrate --force</p>
                 <p>php artisan key:generate --force</p>
@@ -342,16 +352,15 @@ export default function SshAccessPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl bg-[#fff0b8] p-6">
+        <section className="rounded-3xl bg-[#F1F1F1] p-6">
           <div className="flex items-start gap-3">
             <Terminal className="mt-1 size-5 shrink-0" />
-            <p className="text-sm leading-6 text-[#5f5223]">
+            <p className="text-sm leading-6 text-[#2F4156]">
               To connect, create a key, add the public key, copy the SSH command,
               then run the commands your application needs.
             </p>
           </div>
         </section>
-      </div>
 
       <Dialog open={disableOpen} onOpenChange={setDisableOpen}>
         <DialogContent>
@@ -382,6 +391,6 @@ export default function SshAccessPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPage>
   );
 }

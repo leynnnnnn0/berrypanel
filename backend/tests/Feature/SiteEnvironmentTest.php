@@ -40,6 +40,7 @@ test('a user can save site environment variables to the provisioned env file', f
             'DB_DATABASE' => 'demo_db',
             'DB_USERNAME' => 'demo_user',
             'DB_PASSWORD' => 'secret with spaces',
+            'PAYMENT_PROVIDER_KEY' => 'custom-provider-value',
         ],
     ]);
 
@@ -49,7 +50,8 @@ test('a user can save site environment variables to the provisioned env file', f
 
     expect(File::get("{$usersRoot}/user_1/sites/demo-site/.env"))
         ->toContain('APP_URL=https://demo.example.com')
-        ->toContain('DB_PASSWORD="secret with spaces"');
+        ->toContain('DB_PASSWORD="secret with spaces"')
+        ->toContain('PAYMENT_PROVIDER_KEY=custom-provider-value');
 
     expect($site->refresh()->env_variables['DB_USERNAME'])->toBe('demo_user');
 });

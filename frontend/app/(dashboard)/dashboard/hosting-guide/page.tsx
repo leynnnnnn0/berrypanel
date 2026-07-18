@@ -1,5 +1,8 @@
 import { BookOpen, LifeBuoy, ServerCog } from "lucide-react";
 import { HostingGuideTabs } from "@/components/hosting-guide/guide-tabs";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { MetricCard } from "@/components/dashboard/metric-card";
 
 const highlights = [
   {
@@ -24,54 +27,30 @@ const highlights = [
 
 export default function HostingGuidePage() {
   return (
-    <main className="min-h-screen bg-neutral-100 p-3 sm:p-5 lg:p-8">
-      <div className="mx-auto max-w-[1800px] space-y-6">
-        <section className="overflow-hidden rounded-[32px] border border-neutral-200 bg-white shadow-sm">
-          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.5fr)] lg:p-12">
-            <div className="max-w-4xl space-y-6">
-              <span className="inline-flex w-fit rounded-full bg-[#d8ccf4] px-5 py-2 text-sm font-semibold text-neutral-950">
-                BerryPanel Documentation
-              </span>
-              <div className="space-y-4">
-                <h1 className="text-5xl font-semibold tracking-normal text-neutral-950 sm:text-6xl lg:text-7xl">
-                  Hosting Guide
-                </h1>
-                <p className="max-w-3xl text-lg leading-8 text-neutral-600">
-                  Everything customers need to launch and maintain Laravel sites
-                  on BerryPanel: repository requirements, deployment steps,
-                  accepted maintenance commands, domain guidance, and fixes for
-                  common deployment issues.
-                </p>
-              </div>
-            </div>
+    <DashboardPage>
+        <DashboardHero
+          eyebrow="Documentation · Hosting playbooks"
+          title="Hosting Guide"
+          description="Launch and maintain Laravel sites with repository requirements, deployment steps, safe commands, domain guidance, and practical error fixes."
+          icon={BookOpen}
+          contextValue="Guides and troubleshooting"
+        />
 
-            <div className="grid gap-3">
-              {highlights.map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[24px] border border-neutral-200 bg-neutral-50 p-5"
-                >
-                  <div className="flex items-start gap-4">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white">
-                      <item.icon className="h-6 w-6 text-neutral-950" />
-                    </span>
-                    <div className="space-y-1">
-                      <h2 className="text-base font-semibold text-neutral-950">
-                        {item.title}
-                      </h2>
-                      <p className="text-sm leading-6 text-neutral-600">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          {highlights.map((item, index) => (
+            <MetricCard
+              key={item.title}
+              label={item.title}
+              value={`0${index + 1}`}
+              detail={item.description}
+              icon={item.icon}
+              tone={(["lavender", "sky", "mist"] as const)[index]}
+              eyebrow="Guide section"
+            />
+          ))}
         </section>
 
         <HostingGuideTabs />
-      </div>
-    </main>
+    </DashboardPage>
   );
 }

@@ -24,7 +24,7 @@ test('a user can view storage usage for their linux workspace', function () {
 
     config([
         'berrypanel.users_root' => $usersRoot,
-        'berrypanel.storage_quota_gb' => 25,
+        'berrypanel.storage_quota_gb' => 1.2,
     ]);
 
     $user = User::factory()->create(['linux_username' => 'user_1']);
@@ -47,7 +47,7 @@ test('a user can view storage usage for their linux workspace', function () {
     $response
         ->assertOk()
         ->assertJsonPath('usage.total_bytes', 100)
-        ->assertJsonPath('usage.quota_bytes', 26843545600)
+        ->assertJsonPath('usage.quota_bytes', 1288490189)
         ->assertJsonPath('usage.file_count', 4)
         ->assertJsonPath('usage.breakdown.uploads.bytes', 10)
         ->assertJsonPath('usage.breakdown.uploads.files', 1)
@@ -75,7 +75,7 @@ test('storage usage follows owned site paths instead of linux username workspace
 
     config([
         'berrypanel.users_root' => $usersRoot,
-        'berrypanel.storage_quota_gb' => 25,
+        'berrypanel.storage_quota_gb' => 1.2,
     ]);
 
     $user = User::factory()->create(['linux_username' => 'nathan']);

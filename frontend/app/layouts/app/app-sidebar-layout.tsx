@@ -13,9 +13,12 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider className="bg-[#F5EFEB] has-data-[variant=inset]:bg-[#F5EFEB]">
         <AppSidebar />
-        <AppContent variant="sidebar" className="overflow-x-hidden">
+        <AppContent
+          variant="sidebar"
+          className="overflow-x-hidden bg-white"
+        >
           <AppSidebarHeader breadcrumbs={breadcrumbs} />
           {children}
         </AppContent>

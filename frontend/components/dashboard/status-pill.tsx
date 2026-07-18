@@ -4,8 +4,8 @@ export function StatusPill({ children }: { children: string }) {
     normalized === "online" || normalized === "provisioned"
       ? "bg-[#dff8c8] text-[#2c4a1f]"
       : normalized === "deploying" || normalized === "needs configuration"
-        ? "bg-[#fff0b8] text-[#5c4b10]"
-        : "bg-[#f4f4f4] text-[#555]";
+        ? "bg-[#F1F1F1] text-[#2F4156]"
+        : "bg-[#F1F1F1] text-[#567C8D]";
 
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-medium ${tone}`}>

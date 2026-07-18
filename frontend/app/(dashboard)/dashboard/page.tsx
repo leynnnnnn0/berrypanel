@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { DashboardPage as DashboardPageShell } from "@/components/dashboard/dashboard-page";
 import { SectionTitle } from "@/components/dashboard/section-title";
 import { StatusPill } from "@/components/dashboard/status-pill";
 import {
@@ -33,6 +35,7 @@ import {
   CheckCircle2,
   Clock3,
   CloudUpload,
+  Database,
   ExternalLink,
   Folder,
   GitBranch,
@@ -76,6 +79,9 @@ const deploySteps = [
   },
 ];
 
+type DatabasesResponse = {
+  databases: Array<{ id: number }>;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -83,6 +89,8 @@ export default function DashboardPage() {
   const [usage, setUsage] = useState<UsageResponse["usage"] | null>(null);
   const [loadingSites, setLoadingSites] = useState(true);
   const [loadingUsage, setLoadingUsage] = useState(true);
+  const [databaseCount, setDatabaseCount] = useState(0);
+  const [loadingDatabases, setLoadingDatabases] = useState(true);
   const [creatingSite, setCreatingSite] = useState(false);
   const [siteDialogOpen, setSiteDialogOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
@@ -116,6 +124,19 @@ export default function DashboardPage() {
       setError(err instanceof Error ? err.message : "Unable to load usage");
     } finally {
       setLoadingUsage(false);
+    }
+  }
+
+  async function loadDatabases() {
+    setLoadingDatabases(true);
+
+    try {
+      const response = await api<DatabasesResponse>("/api/databases");
+      setDatabaseCount(response.databases.length);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load databases");
+    } finally {
+      setLoadingDatabases(false);
     }
   }
 
@@ -167,12 +188,11 @@ export default function DashboardPage() {
   useEffect(() => {
     loadSites();
     loadUsage();
+    loadDatabases();
   }, []);
 
   const storageUsed = usage ? formatBytes(usage.total_bytes) : loadingUsage ? "..." : "0 B";
-  const storageQuota = usage ? formatBytes(usage.quota_bytes) : "25 GB";
-  const storagePercent = usage ? usage.percent : 0;
-  const visibleStoragePercent = usage && usage.total_bytes > 0 ? Math.max(1, storagePercent) : 0;
+  const storageQuota = usage ? formatBytes(usage.quota_bytes) : "1.2 GB";
   const workspaceCountDetail = usage
     ? `${formatCount(usage.file_count, "file")} / ${formatCount(usage.directory_count, "folder")}`
     : loadingUsage
@@ -209,10 +229,13 @@ export default function DashboardPage() {
     name: site.name,
     stack: `${site.stack} / PHP ${site.php_version}`,
     domain: site.local_url ?? "Pending local domain",
+    domainUrl: site.local_url
+      ? (/^https?:\/\//i.test(site.local_url) ? site.local_url : `http://${site.local_url}`)
+      : null,
     repositoryUrl: site.repository_url,
     status: siteStatusLabel(site.status),
     branch: site.repository_branch ? site.repository_branch : "main",
-    accent: index % 2 === 0 ? "bg-[#d8cef2]" : "bg-[#fff0b8]",
+    accent: index % 2 === 0 ? "bg-[#C8D9E6]" : "bg-[#F1F1F1]",
   }));
   const siteStorage = usage?.sites ?? [];
   const deploymentActivities = useMemo<DeployActivity[]>(() => {
@@ -273,10 +296,16 @@ export default function DashboardPage() {
         detail: deploymentActivities.length === 1 ? "event" : "events",
       },
       { label: "Storage", value: storageUsed, detail: workspaceCountDetail },
-      { label: "Databases", value: "0", detail: "coming soon" },
+      {
+        label: "Databases",
+        value: loadingDatabases ? "..." : String(databaseCount),
+        detail: databaseCount === 1 ? "configured database" : "configured databases",
+      },
     ],
     [
       deploymentActivities.length,
+      databaseCount,
+      loadingDatabases,
       loadingSites,
       sites.length,
       storageUsed,
@@ -285,105 +314,62 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#121212]">
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <section className="overflow-hidden rounded-3xl bg-white">
-          <div className="grid gap-6 p-6 lg:grid-cols-[1fr_380px] lg:p-8">
-            <div className="flex flex-col justify-between gap-10">
-              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <span className="inline-flex rounded-full bg-[#d8cef2] px-4 py-2 text-sm font-medium">
-                    Customer Workspace
-                  </span>
-                  <h1 className="mt-5 max-w-3xl text-5xl font-semibold leading-[0.95] md:text-7xl">
-                    My Hosting
-                  </h1>
-                  <p className="mt-5 max-w-xl text-lg leading-6 text-[#666]">
-                    Manage your Laravel sites, deployments, domains, databases,
-                    and account access from one focused panel.
-                  </p>
-                </div>
-                <Button
-                  className="h-12 rounded-full bg-black px-5 text-sm font-medium text-white hover:bg-black/85"
-                  disabled={creatingSite}
-                  onClick={() => {
-                    setCreateError("");
-                    setSiteDialogOpen(true);
-                  }}
-                >
-                  <Plus className="size-4" />
-                  {creatingSite ? "Creating..." : "New Laravel Site"}
-                </Button>
-              </div>
+    <DashboardPageShell>
+        <DashboardHero
+          eyebrow="BerryPanel workspace · Live overview"
+          title="My hosting at a glance."
+          description="Manage Laravel sites, deployments, domains, databases, and account access from one focused panel."
+          icon={ServerCog}
+          contextLabel="Plan usage"
+          contextValue={`${storageUsed} of ${storageQuota}`}
+          action={
+            <Button
+              className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
+              disabled={creatingSite}
+              onClick={() => {
+                setCreateError("");
+                setSiteDialogOpen(true);
+              }}
+            >
+              <Plus className="size-4" />
+              {creatingSite ? "Creating..." : "New Laravel Site"}
+            </Button>
+          }
+        />
 
-              {error && !siteDialogOpen && (
-                <p className="break-words rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 [overflow-wrap:anywhere]">
-                  {error}
-                </p>
-              )}
+        {error && !siteDialogOpen && (
+          <p className="break-words rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600 [overflow-wrap:anywhere]">
+            {error}
+          </p>
+        )}
 
-              <div className="grid gap-4 md:grid-cols-4">
-                {stats.map((stat) => (
-                  <MetricCard key={stat.label} {...stat} />
-                ))}
-              </div>
-            </div>
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat, index) => {
+            const visuals = [
+              { icon: Globe2, tone: "lavender" as const, eyebrow: "Hosting activity" },
+              { icon: GitBranch, tone: "sky" as const, eyebrow: "Deployment activity" },
+              { icon: HardDrive, tone: "mist" as const, eyebrow: "Plan usage" },
+              { icon: Database, tone: "slate" as const, eyebrow: "Data services" },
+            ][index];
 
-            <div className="relative min-h-[320px] overflow-hidden rounded-3xl bg-[#d8cef2] p-6">
-              <div className="absolute -bottom-20 left-8 text-[180px] font-bold leading-none text-white/55">
-                BP
-              </div>
-              <div className="relative z-10 flex h-full flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-white px-4 py-2 text-sm">
-                    Plan Usage
-                  </span>
-                  <ServerCog className="size-6" />
-                </div>
-                <div>
-                  <p className="text-5xl font-semibold">{storageUsed}</p>
-                  <p className="mt-2 text-sm text-[#4f4960]">
-                    of {storageQuota} storage used
-                  </p>
-                  <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/70">
-                    <div
-                      className="h-full rounded-full bg-black transition-all"
-                      style={{ width: `${Math.min(100, visibleStoragePercent)}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-[#4f4960]">
-                    {storagePercent}% used / {workspaceCountDetail}
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  {["PHP 8.4", "MariaDB", "SSL"].map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full bg-white/80 px-3 py-2 text-center"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+            return <MetricCard key={stat.label} {...stat} {...visuals} />;
+          })}
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <div className="flex items-center justify-between gap-4">
-              <SectionTitle eyebrow="Sites" title="Active Laravel Sites" />
+              <SectionTitle eyebrow="Sites" title="Active Sites" />
               <Link
                 href="/dashboard/sites"
-                className="rounded-full border border-[#777] px-4 py-2 text-sm"
+                className="rounded-full border border-[#567C8D] px-4 py-2 text-sm"
               >
                 View all
               </Link>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-black/5">
-              <div className="hidden grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] bg-[#f7f7f7] px-5 py-3 text-xs font-medium uppercase text-[#777] md:grid">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/5">
+              <div className="hidden grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] md:grid">
                 <span>Site</span>
                 <span>GitHub</span>
                 <span>Domain</span>
@@ -391,14 +377,14 @@ export default function DashboardPage() {
                 <span>Branch</span>
               </div>
               {loadingSites && (
-                <div className="border-t border-black/5 px-5 py-6 text-sm text-[#777]">
+                <div className="border-t border-[#2F4156]/5 px-5 py-6 text-sm text-[#567C8D]">
                   Loading your sites...
                 </div>
               )}
 
               {!loadingSites && visibleSites.length === 0 && (
-                <div className="border-t border-black/5 px-5 py-6 text-sm text-[#777]">
-                  No Laravel sites yet. Create your first site to provision its
+                <div className="border-t border-[#2F4156]/5 px-5 py-6 text-sm text-[#567C8D]">
+                  No active sites yet. Create your first site to provision its
                   application workspace.
                 </div>
               )}
@@ -406,7 +392,7 @@ export default function DashboardPage() {
               {!loadingSites && visibleSites.map((site) => (
                 <div
                   key={site.name}
-                  className="flex flex-col gap-3 border-t border-black/5 px-5 py-4 text-sm md:grid md:grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] md:items-center"
+                  className="flex flex-col gap-3 border-t border-[#2F4156]/5 px-5 py-4 text-sm md:grid md:grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] md:items-center"
                 >
                   <div className="flex items-center gap-3">
                     <span
@@ -416,7 +402,7 @@ export default function DashboardPage() {
                     </span>
                     <div>
                       <p className="font-medium">{site.name}</p>
-                      <p className="text-xs text-[#777]">{site.stack}</p>
+                      <p className="text-xs text-[#567C8D]">{site.stack}</p>
                     </div>
                   </div>
                   {site.repositoryUrl ? (
@@ -424,7 +410,7 @@ export default function DashboardPage() {
                       href={site.repositoryUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex min-w-0 items-center gap-2 text-[#555] hover:text-black"
+                      className="flex min-w-0 items-center gap-2 text-[#567C8D] hover:text-[#2F4156]"
                     >
                       <GitFork className="size-4 shrink-0" />
                       <span className="truncate">
@@ -433,15 +419,25 @@ export default function DashboardPage() {
                       <ExternalLink className="size-3 shrink-0" />
                     </a>
                   ) : (
-                    <span className="text-[#777]">No repository</span>
+                    <span className="text-[#567C8D]">No repository</span>
                   )}
-                  <span className="break-words text-[#555]">
-                    {site.domain}
-                  </span>
+                  {site.domainUrl ? (
+                    <a
+                      href={site.domainUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-w-0 items-center gap-1 break-words text-[#567C8D] hover:text-[#2F4156] hover:underline"
+                    >
+                      {site.domain}
+                      <ExternalLink className="size-3 shrink-0" />
+                    </a>
+                  ) : (
+                    <span className="text-[#567C8D]">{site.domain}</span>
+                  )}
                   <div>
                     <StatusPill>{site.status}</StatusPill>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[#555]">
+                  <span className="inline-flex items-center gap-1 text-[#567C8D]">
                     <GitBranch className="size-4" />
                     {site.branch}
                   </span>
@@ -454,33 +450,33 @@ export default function DashboardPage() {
             <SectionTitle eyebrow="Activity" title="Latest Deploy Log" />
             <div className="mt-6 space-y-3">
               {loadingSites && (
-                <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                <div className="rounded-2xl bg-[#F1F1F1] p-4 text-sm text-[#567C8D]">
                   Loading deployment activity...
                 </div>
               )}
 
               {!loadingSites && deploymentActivities.length === 0 && (
-                <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                <div className="rounded-2xl bg-[#F1F1F1] p-4 text-sm text-[#567C8D]">
                   No deploy activity yet. Create a Laravel site to start the
                   log.
                 </div>
               )}
 
               {!loadingSites && deploymentActivities.map((item) => (
-                <div key={item.id} className="flex gap-3 rounded-2xl bg-[#f7f7f7] p-4">
+                <div key={item.id} className="flex gap-3 rounded-2xl bg-[#F1F1F1] p-4">
                   <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-white">
                     {item.tone === "warning" ? (
-                      <Clock3 className="size-4 text-[#7b6415]" />
+                      <Clock3 className="size-4 text-[#2F4156]" />
                     ) : (
                       <CheckCircle2 className="size-4 text-[#467a2d]" />
                     )}
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{item.label}</p>
-                    <p className="mt-1 max-h-10 overflow-hidden break-words text-xs text-[#777] [overflow-wrap:anywhere]">
+                    <p className="mt-1 max-h-10 overflow-hidden break-words text-xs text-[#567C8D] [overflow-wrap:anywhere]">
                       {item.detail}
                     </p>
-                    <p className="mt-2 text-xs text-[#999]">
+                    <p className="mt-2 text-xs text-[#567C8D]">
                       {formatRelativeTime(item.timestamp)}
                     </p>
                   </div>
@@ -493,11 +489,11 @@ export default function DashboardPage() {
         <section>
           <div className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <SectionTitle eyebrow="Files" title="Storage Breakdown" />
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
               {storageBreakdown.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center justify-between rounded-2xl bg-[#f7f7f7] p-4"
+                  className="flex items-center justify-between rounded-2xl bg-[#F1F1F1] p-4"
                 >
                   <div className="flex items-center gap-3">
                     <span className="grid size-10 place-items-center rounded-full bg-white">
@@ -505,7 +501,7 @@ export default function DashboardPage() {
                     </span>
                     <div>
                       <p className="text-sm font-medium">{item.label}</p>
-                      <p className="mt-0.5 text-xs text-[#777]">
+                      <p className="mt-0.5 text-xs text-[#567C8D]">
                         {item.detail}
                       </p>
                     </div>
@@ -516,24 +512,24 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 border-t border-black/5 pt-5">
+            <div className="mt-6 border-t border-[#2F4156]/5 pt-5">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-[#151515]">
+                <h3 className="text-sm font-semibold text-[#2F4156]">
                   Sites using storage
                 </h3>
-                <span className="text-xs text-[#777]">
+                <span className="text-xs text-[#567C8D]">
                   {formatCount(siteStorage.length, "site")}
                 </span>
               </div>
               <div className="mt-4 space-y-3">
                 {loadingUsage && (
-                  <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                  <div className="rounded-2xl bg-[#F1F1F1] p-4 text-sm text-[#567C8D]">
                     Checking application storage...
                   </div>
                 )}
 
                 {!loadingUsage && siteStorage.length === 0 && (
-                  <div className="rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#777]">
+                  <div className="rounded-2xl bg-[#F1F1F1] p-4 text-sm text-[#567C8D]">
                     No hosted applications found yet.
                   </div>
                 )}
@@ -541,14 +537,14 @@ export default function DashboardPage() {
                 {!loadingUsage && siteStorage.map((site) => (
                   <div
                     key={site.id}
-                    className="rounded-2xl bg-[#f7f7f7] p-4"
+                    className="rounded-2xl bg-[#F1F1F1] p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
                           {site.name}
                         </p>
-                        <p className="mt-1 text-xs text-[#777]">
+                        <p className="mt-1 text-xs text-[#567C8D]">
                           {formatBreakdownDetail(site)}
                         </p>
                       </div>
@@ -557,7 +553,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     {!site.exists && (
-                      <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-[#8a6810]">
+                      <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-[#2F4156]">
                         Application files need attention. Contact support if this persists.
                       </p>
                     )}
@@ -567,7 +563,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
-      </div>
+
 
       <Dialog
         open={siteDialogOpen}
@@ -583,15 +579,15 @@ export default function DashboardPage() {
             className="flex max-h-[calc(100dvh-1rem)] min-h-0 flex-col sm:max-h-[calc(100dvh-2rem)]"
           >
             <div className="flex min-h-0 flex-col overflow-hidden rounded-3xl bg-white">
-              <div className="shrink-0 bg-[#d8cef2] p-5 sm:p-6">
+              <div className="shrink-0 bg-[#C8D9E6] p-5 sm:p-6">
                 <DialogHeader className="pr-10">
-                  <span className="w-fit rounded-full bg-white/75 px-4 py-2 text-sm font-medium text-[#151515]">
+                  <span className="w-fit rounded-full bg-white/75 px-4 py-2 text-sm font-medium text-[#2F4156]">
                     Laravel Provisioning
                   </span>
                   <DialogTitle className="mt-5 text-4xl leading-none sm:text-5xl">
                     New Laravel Site
                   </DialogTitle>
-                  <DialogDescription className="max-w-md text-[#4f4960]">
+                  <DialogDescription className="max-w-md text-[#567C8D]">
                     BerryPanel will prepare your application and connect your public
                     GitHub repository.
                   </DialogDescription>
@@ -603,17 +599,17 @@ export default function DashboardPage() {
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="overflow-hidden rounded-3xl border border-[#ded8f3] bg-[#f7f3ff]"
+                    className="overflow-hidden rounded-3xl border border-[#C8D9E6] bg-[#C8D9E6]"
                   >
                     <div className="flex items-start gap-4 p-4">
-                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#171717] shadow-sm">
+                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#2F4156] shadow-sm">
                         <Loader2 className="size-5 animate-spin" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-[#171717]">
+                        <p className="text-sm font-semibold text-[#2F4156]">
                           Deploying your Laravel site
                         </p>
-                        <p className="mt-1 text-sm leading-5 text-[#6b6478]">
+                        <p className="mt-1 text-sm leading-5 text-[#567C8D]">
                           Keep this window open while BerryPanel talks to GitHub.
                           Public repositories usually finish in under a minute.
                         </p>
@@ -621,7 +617,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="h-1 bg-white">
                       <motion.div
-                        className="h-full bg-[#d8cef2]"
+                        className="h-full bg-[#C8D9E6]"
                         initial={{ width: "15%" }}
                         animate={{
                           width: `${Math.min(92, Math.max(25, ((deployStep + 1) / deploySteps.length) * 100))}%`,
@@ -644,8 +640,8 @@ export default function DashboardPage() {
                                 isDone
                                   ? "bg-[#dff8c8] text-[#2c4a1f]"
                                   : isActive
-                                    ? "bg-[#171717] text-white"
-                                    : "bg-white text-[#8a8495]"
+                                    ? "bg-[#2F4156] text-white"
+                                    : "bg-white text-[#567C8D]"
                               }`}
                             >
                               {isDone ? (
@@ -657,10 +653,10 @@ export default function DashboardPage() {
                               )}
                             </span>
                             <div>
-                              <p className="text-sm font-medium text-[#171717]">
+                              <p className="text-sm font-medium text-[#2F4156]">
                                 {step.label}
                               </p>
-                              <p className="text-xs leading-5 text-[#6b6478]">
+                              <p className="text-xs leading-5 text-[#567C8D]">
                                 {step.body}
                               </p>
                             </div>
@@ -678,7 +674,7 @@ export default function DashboardPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="site-name" className="text-[#333]">
+                  <Label htmlFor="site-name" className="text-[#2F4156]">
                     Site name
                   </Label>
                   <Input
@@ -692,16 +688,16 @@ export default function DashboardPage() {
                     pattern="[A-Za-z0-9][A-Za-z0-9 -]*[A-Za-z0-9]"
                     required
                     disabled={creatingSite}
-                    className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
+                    className="h-14 rounded-full border-[#C8D9E6] bg-[#F1F1F1] px-5 text-base"
                   />
-                  <p className="text-xs leading-5 text-[#777]">
+                  <p className="text-xs leading-5 text-[#567C8D]">
                     Use letters, numbers, spaces, or hyphens. We will convert it
                     into a safe application name.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="repository-url" className="text-[#333]">
+                  <Label htmlFor="repository-url" className="text-[#2F4156]">
                     Public GitHub URL
                   </Label>
                   <Input
@@ -716,15 +712,15 @@ export default function DashboardPage() {
                     pattern="https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(\.git)?"
                     required
                     disabled={creatingSite}
-                    className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
+                    className="h-14 rounded-full border-[#C8D9E6] bg-[#F1F1F1] px-5 text-base"
                   />
-                  <p className="text-xs leading-5 text-[#777]">
+                  <p className="text-xs leading-5 text-[#567C8D]">
                     For now, only public GitHub repositories are supported.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="repository-branch" className="text-[#333]">
+                  <Label htmlFor="repository-branch" className="text-[#2F4156]">
                     Branch
                   </Label>
                   <Input
@@ -738,26 +734,26 @@ export default function DashboardPage() {
                     pattern="[A-Za-z0-9._/-]+"
                     required
                     disabled={creatingSite}
-                    className="h-14 rounded-full border-[#d8d8d8] bg-[#f7f7f7] px-5 text-base"
+                    className="h-14 rounded-full border-[#C8D9E6] bg-[#F1F1F1] px-5 text-base"
                   />
                 </div>
 
-                <div className="grid gap-3 rounded-2xl bg-[#f7f7f7] p-4 text-sm text-[#555] md:grid-cols-3">
+                <div className="grid gap-3 rounded-2xl bg-[#F1F1F1] p-4 text-sm text-[#567C8D] md:grid-cols-3">
                   <div>
-                    <p className="font-medium text-[#151515]">Stack</p>
+                    <p className="font-medium text-[#2F4156]">Stack</p>
                     <p>Laravel / Inertia</p>
                   </div>
                   <div>
-                    <p className="font-medium text-[#151515]">PHP</p>
+                    <p className="font-medium text-[#2F4156]">PHP</p>
                     <p>8.4</p>
                   </div>
                   <div>
-                    <p className="font-medium text-[#151515]">Included</p>
+                    <p className="font-medium text-[#2F4156]">Included</p>
                     <p>public, storage, logs</p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-black/5 bg-[#fffaf0] p-4 text-sm leading-6 text-[#67551b]">
+                <div className="rounded-2xl border border-[#2F4156]/5 bg-[#F1F1F1] p-4 text-sm leading-6 text-[#2F4156]">
                   After deploy, BerryPanel opens the site page so you can create
                   or select a database, paste credentials into `.env`, and save
                   the Laravel runtime settings.
@@ -775,7 +771,7 @@ export default function DashboardPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="h-11 rounded-full bg-black px-5 text-white hover:bg-black/85"
+                    className="h-11 rounded-full bg-[#2F4156] px-5 text-white hover:bg-[#2F4156]/85"
                     disabled={creatingSite}
                   >
                     {creatingSite ? (
@@ -793,6 +789,6 @@ export default function DashboardPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   );
 }
