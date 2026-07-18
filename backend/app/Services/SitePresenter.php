@@ -26,6 +26,13 @@ class SitePresenter
             'build_on_deploy' => $site->build_on_deploy,
             'restart_services_on_deploy' => $site->restart_services_on_deploy,
             'health_check_url' => $site->health_check_url,
+            'availability' => [
+                'status' => $site->availability_status ?: 'unknown',
+                'http_status' => $site->availability_http_status,
+                'response_ms' => $site->availability_response_ms,
+                'checked_at' => $site->availability_checked_at?->toISOString(),
+                'error' => $site->availability_error,
+            ],
             'current_commit' => $site->current_commit,
             'deployment_warnings' => $site->deployment_warnings ?: [],
             'created_at' => $site->created_at?->toISOString(),

@@ -2,9 +2,11 @@
 
 use App\Models\Site;
 use App\Services\NginxSiteProvisioner;
+use App\Services\SiteAvailabilityChecker;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -120,3 +122,35 @@ Artisan::command('berrypanel:nginx:sync {site?}', function () {
 
     return 0;
 })->purpose('Create or refresh Nginx virtual hosts for existing BerryPanel sites');
+
+Artisan::command('berrypanel:sites:check-availability {site?}', function () {
+    $siteSlug = $this->argument('site');
+    $query = Site::query()
+        ->with('customDomains')
+        ->when($siteSlug, fn ($builder) => $builder->where('slug', $siteSlug));
+
+    if (! $query->exists()) {
+        $this->warn($siteSlug ? "No site found for slug [{$siteSlug}]." : 'No sites found.');
+
+        return $siteSlug ? 1 : 0;
+    }
+
+    /** @var SiteAvailabilityChecker $checker */
+    $checker = app(SiteAvailabilityChecker::class);
+    $checked = 0;
+
+    $query->lazyById(100)->each(function (Site $site) use ($checker, &$checked): void {
+        $result = $checker->check($site);
+        $detail = $result->availability_http_status ? "HTTP {$result->availability_http_status}" : ($result->availability_error ?: 'no response');
+        $this->line(strtoupper($result->availability_status)." {$result->slug}: {$detail}");
+        $checked++;
+    });
+
+    $this->info("Checked {$checked} ".str('site')->plural($checked).'.');
+
+    return 0;
+})->purpose('Check the public availability of hosted sites');
+
+Schedule::command('berrypanel:sites:check-availability')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

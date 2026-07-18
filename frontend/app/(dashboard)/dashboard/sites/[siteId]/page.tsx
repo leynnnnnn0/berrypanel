@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { availabilityDetail, availabilityLabel } from "@/components/dashboard/availability-pill";
 import { CustomerServiceControls } from "@/components/hosting/customer-service-controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { ChangeEvent, FormEvent } from "react";
+import type { SiteAvailability } from "@/types/dashboard";
 import { useEffect, useState } from "react";
 
 type EnvVariables = Record<string, string>;
@@ -49,6 +51,7 @@ type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  availability: SiteAvailability;
   deployment_warnings: string[];
   created_at: string | null;
   env_variables: EnvVariables;
@@ -496,7 +499,8 @@ export default function SiteShowPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Availability" value={availabilityLabel(site.availability)} detail={availabilityDetail(site.availability)} icon={Globe2} tone="slate" />
             <MetricCard label="Status" value={site.status} detail="deployment state" icon={ServerCog} tone="lavender" />
             <MetricCard label="Branch" value={site.repository_branch || "main"} detail="deployment source" icon={GitBranch} tone="sky" />
             <MetricCard label="PHP" value={site.php_version} detail="application runtime" icon={FileKey2} tone="mist" />

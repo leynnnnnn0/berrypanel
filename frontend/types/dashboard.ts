@@ -1,3 +1,11 @@
+export type SiteAvailability = {
+  status: "online" | "redirected" | "offline" | "unknown";
+  http_status: number | null;
+  response_ms: number | null;
+  checked_at: string | null;
+  error: string | null;
+};
+
 export type Site = {
   id: number;
   name: string;
@@ -10,6 +18,7 @@ export type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  availability: SiteAvailability;
   deployment_warnings: string[];
   created_at: string | null;
   updated_at: string | null;

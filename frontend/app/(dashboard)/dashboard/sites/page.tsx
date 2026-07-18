@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { AvailabilityPill } from "@/components/dashboard/availability-pill";
+import type { SiteAvailability } from "@/types/dashboard";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ type Site = {
   local_url: string | null;
   repository_url: string | null;
   repository_branch: string;
+  availability: SiteAvailability;
   deployment_warnings: string[];
   created_at: string | null;
 };
@@ -125,11 +128,11 @@ export default function SitesPage() {
           : String(sites.filter((site) => site.repository_url).length),
       },
       {
-        label: "Provisioned",
+        label: "Online",
         value: loading
           ? "..."
           : String(
-              sites.filter((site) => site.status.toLowerCase() === "provisioned")
+              sites.filter((site) => site.availability.status === "online")
                 .length,
             ),
       },
@@ -216,7 +219,7 @@ export default function SitesPage() {
             const visuals = [
               { icon: Globe2, tone: "lavender" as const, detail: "hosted applications" },
               { icon: GitFork, tone: "sky" as const, detail: "connected repositories" },
-              { icon: CheckCircle2, tone: "mist" as const, detail: "ready for traffic" },
+              { icon: CheckCircle2, tone: "mist" as const, detail: "responding successfully" },
             ][index];
 
             return <MetricCard key={stat.label} {...stat} {...visuals} />;
@@ -240,11 +243,12 @@ export default function SitesPage() {
           </div>
 
           <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/5">
-            <div className="hidden grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] lg:grid">
+            <div className="hidden grid-cols-[1.05fr_1.15fr_.9fr_.7fr_.75fr_.35fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] lg:grid">
               <span>Site</span>
               <span>GitHub</span>
               <span>Domain</span>
-              <span>Status</span>
+              <span>Availability</span>
+              <span>Deployment</span>
               <span>Actions</span>
             </div>
 
@@ -264,7 +268,7 @@ export default function SitesPage() {
               sites.map((site, index) => (
                 <div
                   key={site.id}
-                  className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.25fr_1fr_0.7fr_0.45fr] lg:items-center"
+                  className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.05fr_1.15fr_.9fr_.7fr_.75fr_.35fr] lg:items-center"
                 >
                   <div className="flex items-center gap-3">
                     <span
@@ -317,6 +321,8 @@ export default function SitesPage() {
                   ) : (
                     <span className="text-[#567C8D]">Pending local domain</span>
                   )}
+
+                  <AvailabilityPill availability={site.availability} />
 
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusPill status={site.status} />

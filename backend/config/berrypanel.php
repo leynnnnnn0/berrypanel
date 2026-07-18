@@ -5,6 +5,8 @@ return [
     'server_ip' => env('BERRYPANEL_SERVER_IP'),
     'site_domain_suffix' => env('BERRYPANEL_SITE_DOMAIN_SUFFIX'),
     'site_url_scheme' => env('BERRYPANEL_SITE_URL_SCHEME', env('BERRYPANEL_SITE_DOMAIN_SUFFIX') ? 'https' : 'http'),
+    'availability_timeout' => (int) env('BERRYPANEL_AVAILABILITY_TIMEOUT', 5),
+    'availability_connect_timeout' => (int) env('BERRYPANEL_AVAILABILITY_CONNECT_TIMEOUT', 3),
     'git_deploy_enabled' => (bool) env('BERRYPANEL_GIT_DEPLOY_ENABLED', false),
     'storage_quota_gb' => (float) env('BERRYPANEL_STORAGE_QUOTA_GB', 1.2),
     'site_command_use_sudo' => filter_var(env('BERRYPANEL_SITE_COMMAND_USE_SUDO', env('BERRYPANEL_USERS_ROOT') ? true : false), FILTER_VALIDATE_BOOLEAN),

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { AvailabilityPill } from "@/components/dashboard/availability-pill";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,9 @@ import { api } from "@/lib/api";
 import { Blocks, ExternalLink, GitBranch, Globe2, Plus, Rocket } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import type { SiteAvailability } from "@/types/dashboard";
 
-type Project = { id:number; name:string; status:string; repository_url:string; repository_branch:string; domain:string };
+type Project = { id:number; name:string; status:string; repository_url:string; repository_branch:string; domain:string; availability:SiteAvailability };
 const emptyForm = { name:"", repository_url:"", backend_directory:"/backend", frontend_directory:"/frontend" };
 
 export default function NodeLaravelHostingPage() {
@@ -61,14 +63,15 @@ export default function NodeLaravelHostingPage() {
         <h2 className="mt-1 text-2xl font-semibold">Node.js + Laravel projects</h2>
       </div>
       <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/5">
-        <div className="hidden grid-cols-[1.1fr_1.35fr_1fr_.65fr] bg-[#F5EFEB] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] lg:grid">
-          <span>Project</span><span>Repository</span><span>Domain</span><span>Status</span>
+        <div className="hidden grid-cols-[1.05fr_1.25fr_.9fr_.7fr_.65fr] bg-[#F5EFEB] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] lg:grid">
+          <span>Project</span><span>Repository</span><span>Domain</span><span>Availability</span><span>Deployment</span>
         </div>
         {projects.length===0&&<p className="border-t border-[#2F4156]/5 px-5 py-8 text-sm text-[#567C8D]">No Node.js + Laravel projects yet.</p>}
-        {projects.map((project)=><div key={project.id} className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.1fr_1.35fr_1fr_.65fr] lg:items-center">
+        {projects.map((project)=><div key={project.id} className="flex flex-col gap-4 border-t border-[#2F4156]/5 px-5 py-5 text-sm lg:grid lg:grid-cols-[1.05fr_1.25fr_.9fr_.7fr_.65fr] lg:items-center">
           <Link href={`/dashboard/node-laravel-hosting/${project.id}`} className="flex items-center gap-3 font-medium hover:underline"><span className="grid size-11 place-items-center rounded-xl bg-[#C8D9E6]"><Blocks className="size-5"/></span>{project.name}</Link>
           <a href={project.repository_url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 text-[#567C8D] hover:text-[#2F4156]"><GitBranch className="size-4 shrink-0"/><span className="truncate">{project.repository_branch} · {project.repository_url.replace("https://github.com/","")}</span><ExternalLink className="size-3 shrink-0"/></a>
           <a href={/^https?:\/\//i.test(project.domain)?project.domain:`http://${project.domain}`} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 text-[#567C8D] hover:text-[#2F4156] hover:underline"><Globe2 className="size-4 shrink-0"/><span className="truncate">{project.domain}</span><ExternalLink className="size-3 shrink-0"/></a>
+          <AvailabilityPill availability={project.availability} />
           <span className="w-fit rounded-full bg-[#F5EFEB] px-3 py-1 text-xs">{project.status}</span>
         </div>)}
       </div>

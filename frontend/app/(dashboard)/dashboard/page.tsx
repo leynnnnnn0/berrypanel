@@ -6,6 +6,7 @@ import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardPage as DashboardPageShell } from "@/components/dashboard/dashboard-page";
 import { SectionTitle } from "@/components/dashboard/section-title";
 import { StatusPill } from "@/components/dashboard/status-pill";
+import { AvailabilityPill } from "@/components/dashboard/availability-pill";
 import {
   Dialog,
   DialogContent,
@@ -234,6 +235,7 @@ export default function DashboardPage() {
       : null,
     repositoryUrl: site.repository_url,
     status: siteStatusLabel(site.status),
+    availability: site.availability,
     branch: site.repository_branch ? site.repository_branch : "main",
     accent: index % 2 === 0 ? "bg-[#C8D9E6]" : "bg-[#F1F1F1]",
   }));
@@ -286,9 +288,11 @@ export default function DashboardPage() {
   const stats = useMemo(
     () => [
       {
-        label: "Active Sites",
-        value: loadingSites ? "..." : String(sites.length),
-        detail: sites.length === 1 ? "site" : "sites",
+        label: "Online Sites",
+        value: loadingSites
+          ? "..."
+          : String(sites.filter((site) => site.availability.status === "online").length),
+        detail: loadingSites ? "checking availability" : `${sites.length} hosted`,
       },
       {
         label: "Deployments",
@@ -307,7 +311,7 @@ export default function DashboardPage() {
       databaseCount,
       loadingDatabases,
       loadingSites,
-      sites.length,
+      sites,
       storageUsed,
       workspaceCountDetail,
     ],
@@ -359,7 +363,7 @@ export default function DashboardPage() {
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
             <div className="flex items-center justify-between gap-4">
-              <SectionTitle eyebrow="Sites" title="Active Sites" />
+              <SectionTitle eyebrow="Sites" title="Hosted Sites" />
               <Link
                 href="/dashboard/sites"
                 className="rounded-full border border-[#567C8D] px-4 py-2 text-sm"
@@ -369,11 +373,12 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-6 overflow-hidden rounded-2xl border border-[#2F4156]/5">
-              <div className="hidden grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] md:grid">
+              <div className="hidden grid-cols-[1.1fr_1.15fr_.9fr_.7fr_.7fr_.55fr] bg-[#F1F1F1] px-5 py-3 text-xs font-medium uppercase text-[#567C8D] md:grid">
                 <span>Site</span>
                 <span>GitHub</span>
                 <span>Domain</span>
-                <span>Status</span>
+                <span>Availability</span>
+                <span>Deployment</span>
                 <span>Branch</span>
               </div>
               {loadingSites && (
@@ -392,7 +397,7 @@ export default function DashboardPage() {
               {!loadingSites && visibleSites.map((site) => (
                 <div
                   key={site.name}
-                  className="flex flex-col gap-3 border-t border-[#2F4156]/5 px-5 py-4 text-sm md:grid md:grid-cols-[1.15fr_1.2fr_1fr_0.7fr_0.6fr] md:items-center"
+                  className="flex flex-col gap-3 border-t border-[#2F4156]/5 px-5 py-4 text-sm md:grid md:grid-cols-[1.1fr_1.15fr_.9fr_.7fr_.7fr_.55fr] md:items-center"
                 >
                   <div className="flex items-center gap-3">
                     <span
@@ -434,6 +439,7 @@ export default function DashboardPage() {
                   ) : (
                     <span className="text-[#567C8D]">{site.domain}</span>
                   )}
+                  <AvailabilityPill availability={site.availability} />
                   <div>
                     <StatusPill>{site.status}</StatusPill>
                   </div>
