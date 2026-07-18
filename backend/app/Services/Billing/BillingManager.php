@@ -18,6 +18,23 @@ class BillingManager
 
     public function createCheckout(User $user, BillingPlan $plan): BillingPayment
     {
+        if ($plan->price_centavos < 2000) {
+            throw new RuntimeException('The Free plan does not require payment. It applies automatically when no paid plan is active.');
+        }
+
+        $subscription = $user->billingSubscription()->with('plan')->first();
+        $hasActivePaidPlan = $subscription !== null
+            && $subscription->status === 'active'
+            && $subscription->current_period_end?->isFuture()
+            && $subscription->plan instanceof BillingPlan
+            && $subscription->plan->price_centavos > 0;
+
+        if ($hasActivePaidPlan && $plan->sort_order < $subscription->plan->sort_order) {
+            throw new RuntimeException(
+                "Your {$subscription->plan->name} plan is paid through {$subscription->current_period_end->format('M j, Y')}. You can choose {$plan->name} after that period ends."
+            );
+        }
+
         $payment = BillingPayment::create([
             'user_id' => $user->id,
             'billing_plan_id' => $plan->id,
@@ -125,12 +142,35 @@ class BillingManager
 
     private function activateSubscription(BillingPayment $payment): BillingSubscription
     {
-        $subscription = BillingSubscription::where('user_id', $payment->user_id)->lockForUpdate()->first();
+        $subscription = BillingSubscription::where('user_id', $payment->user_id)
+            ->with('plan')
+            ->lockForUpdate()
+            ->first();
         $now = CarbonImmutable::now();
         $samePlan = $subscription?->billing_plan_id === $payment->billing_plan_id;
         $currentEnd = $subscription?->current_period_end?->toImmutable();
-        $periodStart = $samePlan && $currentEnd?->isFuture() ? $currentEnd : $now;
-        $periodEnd = $periodStart->addMonthsNoOverflow($payment->plan->billing_months);
+        $hasActivePlan = $subscription !== null
+            && $subscription->status === 'active'
+            && $currentEnd?->isFuture();
+
+        if ($samePlan && $hasActivePlan) {
+            $periodStart = $subscription->current_period_start?->toImmutable() ?? $now;
+            $periodEnd = $currentEnd->addMonthsNoOverflow($payment->plan->billing_months);
+        } else {
+            $periodStart = $now;
+            $periodEnd = $now->addMonthsNoOverflow($payment->plan->billing_months);
+
+            if ($hasActivePlan && $subscription->plan instanceof BillingPlan) {
+                $currentStart = $subscription->current_period_start?->toImmutable() ?? $now;
+                $standardPlanEnd = $currentStart->addMonthsNoOverflow($subscription->plan->billing_months);
+                $periodSeconds = max(1, $currentStart->diffInSeconds($standardPlanEnd));
+                $remainingSeconds = max(0, $now->diffInSeconds($currentEnd, false));
+                $unusedCentavos = $subscription->plan->price_centavos * ($remainingSeconds / $periodSeconds);
+                $targetPeriodSeconds = max(1, $now->diffInSeconds($periodEnd));
+                $bonusSeconds = (int) floor($targetPeriodSeconds * ($unusedCentavos / $payment->plan->price_centavos));
+                $periodEnd = $periodEnd->addSeconds(max(0, $bonusSeconds));
+            }
+        }
 
         return BillingSubscription::updateOrCreate(
             ['user_id' => $payment->user_id],

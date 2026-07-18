@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Site;
+use App\Services\Billing\HostingPlanAccess;
 use App\Services\NginxSiteProvisioner;
 use App\Services\SiteCreator;
 use App\Services\SiteEnvironmentService;
@@ -14,7 +15,7 @@ use RuntimeException;
 
 class SiteController extends Controller
 {
-    public function index(Request $request, SitePresenter $presenter): JsonResponse
+    public function index(Request $request, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
     {
         return response()->json([
             'sites' => $request->user()
@@ -22,10 +23,11 @@ class SiteController extends Controller
                 ->latest()
                 ->get()
                 ->map(fn (Site $site) => $presenter->toArray($site)),
+            'hosting_access' => $plans->summary($request->user()),
         ]);
     }
 
-    public function store(Request $request, SiteCreator $creator, SitePresenter $presenter): JsonResponse
+    public function store(Request $request, SiteCreator $creator, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:62', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9 -]*[a-zA-Z0-9]$/'],
@@ -52,6 +54,7 @@ class SiteController extends Controller
         ]);
 
         try {
+            $plans->assertCanCreateLaravelSite($request->user());
             $site = $creator->create($request->user(), $validated);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);

@@ -1,10 +1,23 @@
 <?php
 
+use App\Models\BillingPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
+
+function activateStarterForSiteUrlTest(User $user): void
+{
+    $plan = BillingPlan::where('slug', 'starter')->firstOrFail();
+    $user->billingSubscription()->create([
+        'billing_plan_id' => $plan->id,
+        'status' => 'active',
+        'current_period_start' => now(),
+        'current_period_end' => now()->addMonth(),
+        'last_payment_at' => now(),
+    ]);
+}
 
 test('new site local url uses the configured server ip through nip io', function () {
     $usersRoot = storage_path('framework/testing/berrypanel-url-users');
@@ -18,6 +31,7 @@ test('new site local url uses the configured server ip through nip io', function
     ]);
 
     $user = User::factory()->create(['linux_username' => 'user_1']);
+    activateStarterForSiteUrlTest($user);
 
     $response = $this->actingAs($user)->postJson('/api/sites', [
         'name' => 'Test Website',
@@ -43,6 +57,7 @@ test('new site local url can use a custom wildcard domain suffix', function () {
     ]);
 
     $user = User::factory()->create(['linux_username' => 'user_2']);
+    activateStarterForSiteUrlTest($user);
 
     $response = $this->actingAs($user)->postJson('/api/sites', [
         'name' => 'Client Portal',

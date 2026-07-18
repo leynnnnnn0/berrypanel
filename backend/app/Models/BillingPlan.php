@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'slug', 'name', 'description', 'price_centavos', 'billing_months', 'storage_bytes',
-    'laravel_site_limit', 'hybrid_site_limit', 'background_services', 'features', 'active', 'sort_order',
+    'laravel_site_limit', 'hybrid_site_limit', 'background_service_site_limit', 'reverb_site_limit',
+    'background_services', 'features', 'active', 'sort_order',
 ])]
 class BillingPlan extends Model
 {
@@ -20,6 +21,8 @@ class BillingPlan extends Model
             'storage_bytes' => 'integer',
             'laravel_site_limit' => 'integer',
             'hybrid_site_limit' => 'integer',
+            'background_service_site_limit' => 'integer',
+            'reverb_site_limit' => 'integer',
             'background_services' => 'boolean',
             'features' => 'array',
             'active' => 'boolean',

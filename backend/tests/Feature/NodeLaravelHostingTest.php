@@ -1,17 +1,122 @@
 <?php
-use App\Jobs\RunSiteDeployment; use App\Models\Deployment; use App\Models\Site; use App\Models\User; use App\Services\Hosting\RestrictedCommandExecutor; use App\Services\Hosting\SitePathResolver; use Illuminate\Foundation\Testing\RefreshDatabase; use Illuminate\Support\Facades\File; use Illuminate\Support\Facades\Queue;
+
+use App\Jobs\RunSiteDeployment;
+use App\Models\BillingPlan;
+use App\Models\Deployment;
+use App\Models\Site;
+use App\Models\User;
+use App\Services\Hosting\RestrictedCommandExecutor;
+use App\Services\Hosting\SitePathResolver;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Queue;
+
 uses(RefreshDatabase::class);
-function hybridSite(User $user,string $root):Site{File::ensureDirectoryExists($root.'/backend/public');File::ensureDirectoryExists($root.'/frontend');File::put($root.'/backend/artisan','');File::put($root.'/backend/composer.json','{}');File::put($root.'/frontend/package.json','{}');return Site::create(['user_id'=>$user->id,'name'=>'Hybrid App','slug'=>'hybrid-app','stack'=>'Node.js + Laravel','php_version'=>'8.4','status'=>'provisioned','root_path'=>$root,'public_path'=>$root.'/backend/public','repository_url'=>'https://github.com/example/hybrid','repository_branch'=>'main','backend_directory'=>'/backend','frontend_directory'=>'/frontend','laravel_public_directory'=>'/backend/public','domain'=>'app.example.test']);}
-test('hybrid application directories are validated inside the site root',function(){$users=storage_path('framework/testing/hybrid-paths');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');$paths=app(SitePathResolver::class)->validateApplicationDirectories($site);expect($paths['backend'])->toEndWith('/backend')->and($paths['frontend'])->toEndWith('/frontend')->and($paths['public'])->toEndWith('/backend/public');});
-test('restricted terminal rejects shell chaining before execution',function(){$users=storage_path('framework/testing/hybrid-terminal');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');expect(fn()=>app(RestrictedCommandExecutor::class)->run($site,$user,'git status; rm -rf /','root'))->toThrow(RuntimeException::class,'Shell chaining');});
-test('restricted terminal accepts the configured branch git pull command',function(){$users=storage_path('framework/testing/hybrid-terminal-git');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');$result=app(RestrictedCommandExecutor::class)->run($site,$user,'git pull origin main','laravel');expect($result['command'])->toBe('git pull origin main')->and($result['exit_code'])->not->toBeNull();});
-test('successful terminal frontend build restarts the managed node service',function(){$users=storage_path('framework/testing/hybrid-terminal-build');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users,'berrypanel.supervisor_enabled'=>false]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');$site->update(['node_build_command'=>'npm run build']);File::put($site->root_path.'/frontend/package.json',json_encode(['scripts'=>['build'=>'node --version']]));$service=$site->services()->create(['name'=>'Node.js Production Server','type'=>'node','working_directory'=>'/frontend','command'=>'npm run start','processes'=>1,'restart_policy'=>'always','max_retries'=>5,'stop_timeout'=>15,'environment_source'=>'node','enabled'=>true,'status'=>'running','restart_count'=>0]);$result=app(RestrictedCommandExecutor::class)->run($site,$user,'npm run build','node');expect($result['successful'])->toBeTrue()->and($result['output'])->toContain('restarted the managed Node.js service')->and($service->fresh()->restart_count)->toBe(1);});
-test('restricted terminal does not launch a second node server with npm restart',function(){$users=storage_path('framework/testing/hybrid-terminal-restart');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');expect(fn()=>app(RestrictedCommandExecutor::class)->run($site,$user,'npm run restart','node'))->toThrow(RuntimeException::class,'That command is not allowed.');});
-test('another user cannot view hosting deployment history',function(){$users=storage_path('framework/testing/hybrid-auth');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$owner=User::factory()->create();$other=User::factory()->create();$site=hybridSite($owner,$users.'/user/sites/hybrid-app');$this->actingAs($other)->getJson("/api/sites/{$site->id}/deployments")->assertForbidden();});
-test('an owner can retry a failed deployment as a new queued deployment',function(){Queue::fake();$users=storage_path('framework/testing/hybrid-retry');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');$failed=$site->deployments()->create(['triggered_by'=>$user->id,'status'=>'failed','branch'=>'main','failed_step'=>'node-build']);$this->actingAs($user)->postJson("/api/sites/{$site->id}/deployments/{$failed->id}/retry")->assertAccepted()->assertJsonPath('deployment.status','queued');expect(Deployment::where('site_id',$site->id)->count())->toBe(2);Queue::assertPushed(RunSiteDeployment::class);});
+function activateFullStackForNodeTest(User $user): void
+{
+    $plan = BillingPlan::where('slug', 'premium')->firstOrFail();
+    $user->billingSubscription()->create(['billing_plan_id' => $plan->id, 'status' => 'active', 'current_period_start' => now(), 'current_period_end' => now()->addMonth(), 'last_payment_at' => now()]);
+}
+function hybridSite(User $user, string $root): Site
+{
+    File::ensureDirectoryExists($root.'/backend/public');
+    File::ensureDirectoryExists($root.'/frontend');
+    File::put($root.'/backend/artisan', '');
+    File::put($root.'/backend/composer.json', '{}');
+    File::put($root.'/frontend/package.json', '{}');
 
-test('an owner can add an additional node service from a validated repository folder',function(){$users=storage_path('framework/testing/hybrid-additional-node');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');File::ensureDirectoryExists($site->root_path.'/ar');File::put($site->root_path.'/ar/package.json','{}');$this->actingAs($user)->postJson("/api/sites/{$site->id}/additional-node-services",['name'=>'AR service','working_directory'=>'/ar','start_command'=>'npm run start','install_command'=>'npm ci','build_command'=>'npm run build','internal_port'=>3001])->assertCreated()->assertJsonPath('service.name','AR service')->assertJsonPath('service.status','pending_deployment');expect($site->services()->where('name','AR service')->firstOrFail()->working_directory)->toBe('/ar');});
+    return Site::create(['user_id' => $user->id, 'name' => 'Hybrid App', 'slug' => 'hybrid-app', 'stack' => 'Node.js + Laravel', 'php_version' => '8.4', 'status' => 'provisioned', 'root_path' => $root, 'public_path' => $root.'/backend/public', 'repository_url' => 'https://github.com/example/hybrid', 'repository_branch' => 'main', 'backend_directory' => '/backend', 'frontend_directory' => '/frontend', 'laravel_public_directory' => '/backend/public', 'domain' => 'app.example.test']);
+}
+test('hybrid application directories are validated inside the site root', function () {
+    $users = storage_path('framework/testing/hybrid-paths');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    $paths = app(SitePathResolver::class)->validateApplicationDirectories($site);
+    expect($paths['backend'])->toEndWith('/backend')->and($paths['frontend'])->toEndWith('/frontend')->and($paths['public'])->toEndWith('/backend/public');
+});
+test('restricted terminal rejects shell chaining before execution', function () {
+    $users = storage_path('framework/testing/hybrid-terminal');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    expect(fn () => app(RestrictedCommandExecutor::class)->run($site, $user, 'git status; rm -rf /', 'root'))->toThrow(RuntimeException::class, 'Shell chaining');
+});
+test('restricted terminal accepts the configured branch git pull command', function () {
+    $users = storage_path('framework/testing/hybrid-terminal-git');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    $result = app(RestrictedCommandExecutor::class)->run($site, $user, 'git pull origin main', 'laravel');
+    expect($result['command'])->toBe('git pull origin main')->and($result['exit_code'])->not->toBeNull();
+});
+test('successful terminal frontend build restarts the managed node service', function () {
+    $users = storage_path('framework/testing/hybrid-terminal-build');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users, 'berrypanel.supervisor_enabled' => false]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    $site->update(['node_build_command' => 'npm run build']);
+    File::put($site->root_path.'/frontend/package.json', json_encode(['scripts' => ['build' => 'node --version']]));
+    $service = $site->services()->create(['name' => 'Node.js Production Server', 'type' => 'node', 'working_directory' => '/frontend', 'command' => 'npm run start', 'processes' => 1, 'restart_policy' => 'always', 'max_retries' => 5, 'stop_timeout' => 15, 'environment_source' => 'node', 'enabled' => true, 'status' => 'running', 'restart_count' => 0]);
+    $result = app(RestrictedCommandExecutor::class)->run($site, $user, 'npm run build', 'node');
+    expect($result['successful'])->toBeTrue()->and($result['output'])->toContain('restarted the managed Node.js service')->and($service->fresh()->restart_count)->toBe(1);
+});
+test('restricted terminal does not launch a second node server with npm restart', function () {
+    $users = storage_path('framework/testing/hybrid-terminal-restart');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    expect(fn () => app(RestrictedCommandExecutor::class)->run($site, $user, 'npm run restart', 'node'))->toThrow(RuntimeException::class, 'That command is not allowed.');
+});
+test('another user cannot view hosting deployment history', function () {
+    $users = storage_path('framework/testing/hybrid-auth');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $site = hybridSite($owner, $users.'/user/sites/hybrid-app');
+    $this->actingAs($other)->getJson("/api/sites/{$site->id}/deployments")->assertForbidden();
+});
+test('an owner can retry a failed deployment as a new queued deployment', function () {
+    Queue::fake();
+    $users = storage_path('framework/testing/hybrid-retry');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    $failed = $site->deployments()->create(['triggered_by' => $user->id, 'status' => 'failed', 'branch' => 'main', 'failed_step' => 'node-build']);
+    $this->actingAs($user)->postJson("/api/sites/{$site->id}/deployments/{$failed->id}/retry")->assertAccepted()->assertJsonPath('deployment.status', 'queued');
+    expect(Deployment::where('site_id', $site->id)->count())->toBe(2);
+    Queue::assertPushed(RunSiteDeployment::class);
+});
 
-test('an additional node service requires a package json folder',function(){$users=storage_path('framework/testing/hybrid-invalid-additional-node');File::deleteDirectory($users);config(['berrypanel.users_root'=>$users]);$user=User::factory()->create();$site=hybridSite($user,$users.'/user/sites/hybrid-app');File::ensureDirectoryExists($site->root_path.'/ar');$this->actingAs($user)->postJson("/api/sites/{$site->id}/additional-node-services",['name'=>'AR service','working_directory'=>'/ar','start_command'=>'npm run start'])->assertUnprocessable()->assertJsonPath('message','Additional Node.js directory must contain package.json.');});
+test('an owner can add an additional node service from a validated repository folder', function () {
+    $users = storage_path('framework/testing/hybrid-additional-node');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    activateFullStackForNodeTest($user);
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    File::ensureDirectoryExists($site->root_path.'/ar');
+    File::put($site->root_path.'/ar/package.json', '{}');
+    $this->actingAs($user)->postJson("/api/sites/{$site->id}/additional-node-services", ['name' => 'AR service', 'working_directory' => '/ar', 'start_command' => 'npm run start', 'install_command' => 'npm ci', 'build_command' => 'npm run build', 'internal_port' => 3001])->assertCreated()->assertJsonPath('service.name', 'AR service')->assertJsonPath('service.status', 'pending_deployment');
+    expect($site->services()->where('name', 'AR service')->firstOrFail()->working_directory)->toBe('/ar');
+});
 
-//test
+test('an additional node service requires a package json folder', function () {
+    $users = storage_path('framework/testing/hybrid-invalid-additional-node');
+    File::deleteDirectory($users);
+    config(['berrypanel.users_root' => $users]);
+    $user = User::factory()->create();
+    activateFullStackForNodeTest($user);
+    $site = hybridSite($user, $users.'/user/sites/hybrid-app');
+    File::ensureDirectoryExists($site->root_path.'/ar');
+    $this->actingAs($user)->postJson("/api/sites/{$site->id}/additional-node-services", ['name' => 'AR service', 'working_directory' => '/ar', 'start_command' => 'npm run start'])->assertUnprocessable()->assertJsonPath('message', 'Additional Node.js directory must contain package.json.');
+});
+
+// test

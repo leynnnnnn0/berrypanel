@@ -24,8 +24,11 @@ type Plan = {
   storage_bytes: number;
   laravel_site_limit: number;
   hybrid_site_limit: number;
+  background_service_site_limit: number;
+  reverb_site_limit: number;
   background_services: boolean;
   features: string[];
+  sort_order: number;
 };
 
 type Subscription = {
@@ -53,6 +56,14 @@ type BillingOverview = {
   plans: Plan[];
   subscription: Subscription | null;
   payments: Payment[];
+  current_plan: Plan;
+  hosting_access: {
+    paid: boolean;
+    laravel_sites: { used: number; limit: number };
+    hybrid_sites: { used: number; limit: number };
+    background_service_sites: { used: number; limit: number };
+    reverb_sites: { used: number; limit: number };
+  };
 };
 
 const money = (centavos: number) =>
@@ -133,7 +144,7 @@ export default function BillingPage() {
         description="Choose your hosting plan and renew it securely with QR Ph. Your payment history and next due date stay together here."
         icon={CreditCard}
         contextLabel="Current plan"
-        contextValue={loading ? "Loading…" : subscription?.plan.name ?? "No active plan"}
+        contextValue={loading ? "Loading…" : overview?.current_plan.name ?? "Free"}
       />
 
       {error && <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
@@ -168,28 +179,56 @@ export default function BillingPage() {
         </section>
       )}
 
+      {!loading && overview && (
+        <section className="grid gap-4 rounded-3xl bg-white p-6 shadow-sm md:grid-cols-2 xl:grid-cols-4">
+          <Summary label="Laravel sites" value={`${overview.hosting_access.laravel_sites.used} of ${overview.hosting_access.laravel_sites.limit} used`} icon={CreditCard} />
+          <Summary label="Node.js + Laravel sites" value={`${overview.hosting_access.hybrid_sites.used} of ${overview.hosting_access.hybrid_sites.limit} used`} icon={CreditCard} />
+          <Summary label="Jobs and scheduler" value={`${overview.hosting_access.background_service_sites.used} of ${overview.hosting_access.background_service_sites.limit} sites`} icon={CalendarClock} />
+          <Summary label="Reverb" value={`${overview.hosting_access.reverb_sites.used} of ${overview.hosting_access.reverb_sites.limit} sites`} icon={CalendarClock} />
+        </section>
+      )}
+
       <section>
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Hosting plans</h2>
-          <p className="mt-1 text-sm text-[#567C8D]">Each QR Ph payment covers one month. You can pay early to add another month.</p>
+          <p className="mt-1 text-sm text-[#567C8D]">Renewals add one month. Upgrades activate immediately, and unused paid time is converted into extra days on the new plan.</p>
         </div>
         {loading ? (
           <div className="mt-5 grid min-h-52 place-items-center rounded-3xl bg-white"><Loader2 className="animate-spin" /></div>
         ) : (
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {overview?.plans.map((plan) => {
-              const current = subscription?.plan.slug === plan.slug && subscription.status === "active";
+              const paidActive = subscription?.status === "active";
+              const current = overview.current_plan.slug === plan.slug;
+              const isFree = plan.price_centavos === 0;
+              const downgradeLocked = Boolean(
+                paidActive && subscription && plan.sort_order < subscription.plan.sort_order,
+              );
+              const upgrading = Boolean(
+                paidActive && subscription && plan.sort_order > subscription.plan.sort_order,
+              );
+              const buttonLabel = isFree
+                ? current
+                  ? "Included"
+                  : "Available after paid period"
+                : downgradeLocked
+                  ? "Available at renewal"
+                  : current
+                    ? "Pay next month"
+                    : upgrading
+                      ? `Upgrade to ${plan.name}`
+                      : `Choose ${plan.name}`;
               return (
                 <article key={plan.slug} className={`flex flex-col rounded-3xl border p-6 shadow-sm ${current ? "border-[#567C8D] bg-[#F5FAFC]" : "border-[#C8D9E6] bg-white"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div><h3 className="text-xl font-semibold">{plan.name}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-[#567C8D]">{plan.description}</p></div>
                     {current && <span className="rounded-full bg-[#2F4156] px-3 py-1 text-xs font-semibold text-white">Current</span>}
                   </div>
-                  <p className="mt-6 text-4xl font-semibold tracking-tight">{money(plan.price_centavos)}<span className="ml-1 text-sm font-normal text-[#567C8D]">/month</span></p>
+                  <p className="mt-6 text-4xl font-semibold tracking-tight">{money(plan.price_centavos)}{!isFree && <span className="ml-1 text-sm font-normal text-[#567C8D]">/month</span>}</p>
                   <ul className="mt-6 flex-1 space-y-3 text-sm">{plan.features.map(feature => <li key={feature} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-emerald-700" />{feature}</li>)}</ul>
-                  <Button className="mt-7 h-11 bg-[#2F4156]" disabled={paying !== null} onClick={() => void checkout(plan)}>
+                  <Button className="mt-7 h-11 bg-[#2F4156]" disabled={paying !== null || isFree || downgradeLocked} onClick={() => void checkout(plan)}>
                     {paying === plan.slug ? <Loader2 className="animate-spin" /> : <QrCode />}
-                    {current ? "Pay next month" : `Choose ${plan.name}`}
+                    {buttonLabel}
                   </Button>
                 </article>
               );

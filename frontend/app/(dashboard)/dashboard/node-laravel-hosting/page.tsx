@@ -13,6 +13,7 @@ import { Blocks, ExternalLink, GitBranch, Globe2, Plus, Rocket } from "lucide-re
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import type { SiteAvailability } from "@/types/dashboard";
+import type { HostingAccess } from "@/types/dashboard";
 
 type Project = { id:number; name:string; status:string; repository_url:string; repository_branch:string; domain:string; availability:SiteAvailability };
 const emptyForm = { name:"", repository_url:"", backend_directory:"/backend", frontend_directory:"/frontend" };
@@ -23,10 +24,11 @@ export default function NodeLaravelHostingPage() {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [hostingAccess, setHostingAccess] = useState<HostingAccess | null>(null);
 
   useEffect(() => {
-    api<{projects:Project[]}>("/api/node-laravel-hosting")
-      .then((response) => setProjects(response.projects))
+    api<{projects:Project[];hosting_access:HostingAccess}>("/api/node-laravel-hosting")
+      .then((response) => { setProjects(response.projects); setHostingAccess(response.hosting_access); })
       .catch((exception) => setError(exception.message));
   }, []);
 
@@ -35,6 +37,14 @@ export default function NodeLaravelHostingPage() {
     try {
       const response = await api<{project:Project}>("/api/node-laravel-hosting", { method:"POST", body:JSON.stringify(form) });
       setProjects((current) => [response.project, ...current]);
+      setHostingAccess((current) => current ? {
+        ...current,
+        hybrid_sites: {
+          ...current.hybrid_sites,
+          used: current.hybrid_sites.used + 1,
+          can_create: current.hybrid_sites.used + 1 < current.hybrid_sites.limit,
+        },
+      } : current);
       setForm(emptyForm); setOpen(false);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : "Unable to deploy project");
@@ -50,7 +60,8 @@ export default function NodeLaravelHostingPage() {
   );
 
   return <DashboardPage>
-    <DashboardHero eyebrow="Full-stack hosting · Deployment workspace" title="Node.js + Laravel" description="Deploy a GitHub project containing a Laravel backend and Node.js frontend with one managed workflow." icon={Blocks} contextValue="Full-stack deployments" action={<Button className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90" onClick={() => setOpen(true)}><Plus/>New hosting project</Button>} />
+    <DashboardHero eyebrow="Full-stack hosting · Deployment workspace" title="Node.js + Laravel" description="Deploy a GitHub project containing a Laravel backend and Node.js frontend with one managed workflow." icon={Blocks} contextValue="Full-stack deployments" action={hostingAccess?.hybrid_sites.can_create?<Button className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90" onClick={() => setOpen(true)}><Plus/>New hosting project</Button>:<Button asChild className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90"><Link href="/dashboard/billing">View hosting plans</Link></Button>} />
+    {hostingAccess&&<p className="rounded-2xl bg-[#F1F1F1] px-4 py-3 text-sm text-[#2F4156]">Node.js + Laravel sites: {hostingAccess.hybrid_sites.used} of {hostingAccess.hybrid_sites.limit} used{!hostingAccess.hybrid_sites.can_create&&<> · <Link className="font-semibold underline" href="/dashboard/billing">Manage plan</Link></>}</p>}
     <section className="grid gap-4 md:grid-cols-3">
       <MetricCard label="Projects" value={String(projects.length)} detail="hosting workspaces" icon={Blocks} tone="lavender" />
       <MetricCard label="Repositories" value={String(projects.filter(project=>project.repository_url).length)} detail="connected sources" icon={GitBranch} tone="sky" />

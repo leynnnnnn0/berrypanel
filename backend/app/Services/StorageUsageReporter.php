@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Services\Billing\HostingPlanAccess;
 use Illuminate\Support\Facades\File;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -12,14 +13,17 @@ use UnexpectedValueException;
 
 class StorageUsageReporter
 {
+    public function __construct(private readonly HostingPlanAccess $plans) {}
+
     public function forUser(User $user): array
     {
+        $plan = $this->plans->effectivePlan($user);
         $subscription = $user->billingSubscription()->with('plan')->first();
         $hasPaidPlan = $subscription !== null
             && $subscription->status === 'active'
-            && $subscription->current_period_end->isFuture();
+            && $subscription->current_period_end?->isFuture();
         $quotaBytes = $hasPaidPlan
-            ? $subscription->plan->storage_bytes
+            ? $plan->storage_bytes
             : (int) round(max(0.1, (float) config('berrypanel.storage_quota_gb', 1.2)) * 1024 * 1024 * 1024);
         $siteModels = $user->sites()->latest()->get();
 
@@ -37,7 +41,7 @@ class StorageUsageReporter
         return [
             'total_bytes' => $totalBytes,
             'quota_bytes' => $quotaBytes,
-            'plan' => $hasPaidPlan ? $subscription->plan->name : null,
+            'plan' => $plan->name,
             'percent' => min(100, round(($totalBytes / $quotaBytes) * 100, 1)),
             'file_count' => $fileCount,
             'directory_count' => $directoryCount,

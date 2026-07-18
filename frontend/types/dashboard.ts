@@ -26,6 +26,18 @@ export type Site = {
 
 export type SitesResponse = {
   sites: Site[];
+  hosting_access: HostingAccess;
+};
+
+export type HostingAccess = {
+  active: boolean;
+  paid: boolean;
+  plan: { slug: string; name: string };
+  laravel_sites: { used: number; limit: number; can_create: boolean };
+  hybrid_sites: { used: number; limit: number; can_create: boolean };
+  background_service_sites: { used: number; limit: number };
+  reverb_sites: { used: number; limit: number };
+  background_services: boolean;
 };
 
 export type CreateSiteResponse = {

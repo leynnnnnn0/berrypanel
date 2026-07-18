@@ -30,6 +30,7 @@ import type {
   DeployActivity,
   Site,
   SitesResponse,
+  HostingAccess,
   UsageResponse,
 } from "@/types/dashboard";
 import {
@@ -97,6 +98,7 @@ export default function DashboardPage() {
   const [siteName, setSiteName] = useState("");
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [repositoryBranch, setRepositoryBranch] = useState("main");
+  const [hostingAccess, setHostingAccess] = useState<HostingAccess | null>(null);
   const [error, setError] = useState("");
   const [createError, setCreateError] = useState("");
   const [deployStep, setDeployStep] = useState(0);
@@ -108,6 +110,7 @@ export default function DashboardPage() {
     try {
       const response = await api<SitesResponse>("/api/sites");
       setSites(response.sites);
+      setHostingAccess(response.hosting_access);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load sites");
     } finally {
@@ -327,17 +330,23 @@ export default function DashboardPage() {
           contextLabel="Plan usage"
           contextValue={`${storageUsed} of ${storageQuota}`}
           action={
-            <Button
-              className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
-              disabled={creatingSite}
-              onClick={() => {
-                setCreateError("");
-                setSiteDialogOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              {creatingSite ? "Creating..." : "New Laravel Site"}
-            </Button>
+            hostingAccess?.laravel_sites.can_create ? (
+              <Button
+                className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
+                disabled={creatingSite}
+                onClick={() => {
+                  setCreateError("");
+                  setSiteDialogOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                {creatingSite ? "Creating..." : "New Laravel Site"}
+              </Button>
+            ) : (
+              <Button asChild className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90">
+                <Link href="/dashboard/billing">View hosting plans</Link>
+              </Button>
+            )
           }
         />
 

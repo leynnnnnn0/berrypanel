@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateBillingCheckoutRequest;
 use App\Models\BillingPlan;
 use App\Services\Billing\BillingManager;
+use App\Services\Billing\HostingPlanAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
 
 class BillingController extends Controller
 {
-    public function show(Request $request): JsonResponse
+    public function show(Request $request, HostingPlanAccess $plans): JsonResponse
     {
         $user = $request->user();
         $user->billingPayments()
@@ -49,6 +50,8 @@ class BillingController extends Controller
                     'paid_at' => $payment->paid_at?->toIso8601String(),
                     'created_at' => $payment->created_at?->toIso8601String(),
                 ]),
+            'hosting_access' => $plans->summary($user),
+            'current_plan' => $this->plan($plans->effectivePlan($user)),
         ]);
     }
 
@@ -81,8 +84,11 @@ class BillingController extends Controller
             'storage_bytes' => $plan->storage_bytes,
             'laravel_site_limit' => $plan->laravel_site_limit,
             'hybrid_site_limit' => $plan->hybrid_site_limit,
+            'background_service_site_limit' => $plan->background_service_site_limit,
+            'reverb_site_limit' => $plan->reverb_site_limit,
             'background_services' => $plan->background_services,
             'features' => $plan->features,
+            'sort_order' => $plan->sort_order,
         ];
     }
 }

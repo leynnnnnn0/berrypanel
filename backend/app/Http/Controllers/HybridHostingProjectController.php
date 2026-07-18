@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateHybridHostingProjectRequest;
 use App\Jobs\RunSiteDeployment;
 use App\Models\Site;
+use App\Services\Billing\HostingPlanAccess;
 use App\Services\Hosting\AuditLogger;
 use App\Services\SitePresenter;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,7 @@ use Illuminate\Support\Str;
 
 class HybridHostingProjectController extends Controller
 {
-    public function index(Request $r, SitePresenter $presenter): JsonResponse
+    public function index(Request $r, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
     {
         $projects = $r->user()
             ->sites()
@@ -23,11 +24,20 @@ class HybridHostingProjectController extends Controller
             ->get()
             ->map(fn (Site $site) => $presenter->toArray($site));
 
-        return response()->json(['projects' => $projects]);
+        return response()->json([
+            'projects' => $projects,
+            'hosting_access' => $plans->summary($r->user()),
+        ]);
     }
 
-    public function store(CreateHybridHostingProjectRequest $r, AuditLogger $audit, SitePresenter $presenter): JsonResponse
+    public function store(CreateHybridHostingProjectRequest $r, AuditLogger $audit, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
     {
+        try {
+            $plans->assertCanCreateHybridSite($r->user());
+        } catch (\RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
         $input = $r->validated();
         $slug = Str::slug($input['name']);
         if ($r->user()->sites()->where('slug', $slug)->exists()) {

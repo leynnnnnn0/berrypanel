@@ -5,7 +5,7 @@ import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { AvailabilityPill } from "@/components/dashboard/availability-pill";
-import type { SiteAvailability } from "@/types/dashboard";
+import type { HostingAccess, SiteAvailability } from "@/types/dashboard";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +56,7 @@ type Site = {
 
 type SitesResponse = {
   sites: Site[];
+  hosting_access: HostingAccess;
 };
 
 function StatusPill({ status }: { status: string }) {
@@ -99,6 +100,7 @@ export default function SitesPage() {
   const [siteName, setSiteName] = useState("");
   const [repositoryUrl, setRepositoryUrl] = useState("");
   const [repositoryBranch, setRepositoryBranch] = useState("main");
+  const [hostingAccess, setHostingAccess] = useState<HostingAccess | null>(null);
 
   useEffect(() => {
     async function loadSites() {
@@ -108,6 +110,7 @@ export default function SitesPage() {
       try {
         const response = await api<SitesResponse>("/api/sites");
         setSites(response.sites);
+        setHostingAccess(response.hosting_access);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load sites");
       } finally {
@@ -156,6 +159,16 @@ export default function SitesPage() {
       setSites((current) =>
         current.filter((site) => site.id !== siteToDelete.id),
       );
+      if (siteToDelete.stack === "Laravel / Inertia") {
+        setHostingAccess((current) => current ? {
+          ...current,
+          laravel_sites: {
+            ...current.laravel_sites,
+            used: Math.max(0, current.laravel_sites.used - 1),
+            can_create: true,
+          },
+        } : current);
+      }
       setSiteToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete site");
@@ -181,6 +194,14 @@ export default function SitesPage() {
       });
 
       setSites((current) => [response.site, ...current]);
+      setHostingAccess((current) => current ? {
+        ...current,
+        laravel_sites: {
+          ...current.laravel_sites,
+          used: current.laravel_sites.used + 1,
+          can_create: current.laravel_sites.used + 1 < current.laravel_sites.limit,
+        },
+      } : current);
       setSiteName("");
       setRepositoryUrl("");
       setRepositoryBranch("main");
@@ -201,18 +222,31 @@ export default function SitesPage() {
           icon={Globe2}
           contextValue="Application inventory"
           action={
-            <Button
-              className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
-              onClick={() => {
-                setError("");
-                setCreateOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              New Laravel Site
-            </Button>
+            hostingAccess?.laravel_sites.can_create ? (
+              <Button
+                className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90"
+                onClick={() => {
+                  setError("");
+                  setCreateOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                New Laravel Site
+              </Button>
+            ) : (
+              <Button asChild className="h-12 rounded-full bg-white px-5 text-sm font-semibold text-[#2F4156] hover:bg-white/90">
+                <Link href="/dashboard/billing">View hosting plans</Link>
+              </Button>
+            )
           }
         />
+
+        {hostingAccess && (
+          <p className="rounded-2xl bg-[#F1F1F1] px-4 py-3 text-sm text-[#2F4156]">
+            Laravel sites: {hostingAccess.laravel_sites.used} of {hostingAccess.laravel_sites.limit} used
+            {!hostingAccess.laravel_sites.can_create && <> · <Link className="font-semibold underline" href="/dashboard/billing">Manage plan</Link></>}
+          </p>
+        )}
 
         <section className="grid gap-4 md:grid-cols-3">
           {stats.map((stat, index) => {
