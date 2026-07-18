@@ -8,12 +8,14 @@ import { AvailabilityPill } from "@/components/dashboard/availability-pill";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { Blocks, ExternalLink, GitBranch, Globe2, Plus, Rocket } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import type { SiteAvailability } from "@/types/dashboard";
 import type { HostingAccess } from "@/types/dashboard";
+import { toast } from "sonner";
 
 type Project = { id:number; name:string; status:string; repository_url:string; repository_branch:string; domain:string; availability:SiteAvailability };
 const emptyForm = { name:"", repository_url:"", backend_directory:"/backend", frontend_directory:"/frontend" };
@@ -23,17 +25,21 @@ export default function NodeLaravelHostingPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [hostingAccess, setHostingAccess] = useState<HostingAccess | null>(null);
 
   useEffect(() => {
     api<{projects:Project[];hosting_access:HostingAccess}>("/api/node-laravel-hosting")
       .then((response) => { setProjects(response.projects); setHostingAccess(response.hosting_access); })
-      .catch((exception) => setError(exception.message));
+      .catch((exception) => toast.error(exception.message));
   }, []);
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault();
+    if (!hostingAccess?.hybrid_sites.can_create) {
+      toast.error("Your current plan does not have an available Node.js + Laravel project slot.");
+      return;
+    }
+    setBusy(true);
     try {
       const response = await api<{project:Project}>("/api/node-laravel-hosting", { method:"POST", body:JSON.stringify(form) });
       setProjects((current) => [response.project, ...current]);
@@ -46,8 +52,9 @@ export default function NodeLaravelHostingPage() {
         },
       } : current);
       setForm(emptyForm); setOpen(false);
+      toast.success("Project queued for deployment.");
     } catch (exception) {
-      setError(exception instanceof Error ? exception.message : "Unable to deploy project");
+      toast.error(exception instanceof Error ? exception.message : "Unable to deploy project");
     } finally { setBusy(false); }
   }
 
@@ -59,15 +66,24 @@ export default function NodeLaravelHostingPage() {
     </div>
   );
 
+  const lockReason = !hostingAccess
+    ? "Checking your plan access."
+    : hostingAccess.hybrid_sites.limit === 0
+      ? "Node.js + Laravel hosting is available on the Premium plan."
+      : "You have reached your plan's Node.js + Laravel site limit.";
+
+  const createAction = hostingAccess?.hybrid_sites.can_create
+    ? <Button className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90" onClick={() => setOpen(true)}><Plus/>New hosting project</Button>
+    : <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Button disabled className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156]"><Plus/>New hosting project</Button></span></TooltipTrigger><TooltipContent side="bottom" className="max-w-64 text-center">{lockReason}</TooltipContent></Tooltip>;
+
   return <DashboardPage>
-    <DashboardHero eyebrow="Full-stack hosting · Deployment workspace" title="Node.js + Laravel" description="Deploy a GitHub project containing a Laravel backend and Node.js frontend with one managed workflow." icon={Blocks} contextValue="Full-stack deployments" action={hostingAccess?.hybrid_sites.can_create?<Button className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90" onClick={() => setOpen(true)}><Plus/>New hosting project</Button>:<Button asChild className="h-12 rounded-full bg-white px-6 font-semibold text-[#2F4156] hover:bg-white/90"><Link href="/dashboard/billing">View hosting plans</Link></Button>} />
+    <DashboardHero eyebrow="Full-stack hosting · Deployment workspace" title="Node.js + Laravel" description="Deploy a GitHub project containing a Laravel backend and Node.js frontend with one managed workflow." icon={Blocks} contextValue="Full-stack deployments" action={createAction} />
     {hostingAccess&&<p className="rounded-2xl bg-[#F1F1F1] px-4 py-3 text-sm text-[#2F4156]">Node.js + Laravel sites: {hostingAccess.hybrid_sites.used} of {hostingAccess.hybrid_sites.limit} used{!hostingAccess.hybrid_sites.can_create&&<> · <Link className="font-semibold underline" href="/dashboard/billing">Manage plan</Link></>}</p>}
     <section className="grid gap-4 md:grid-cols-3">
       <MetricCard label="Projects" value={String(projects.length)} detail="hosting workspaces" icon={Blocks} tone="lavender" />
       <MetricCard label="Repositories" value={String(projects.filter(project=>project.repository_url).length)} detail="connected sources" icon={GitBranch} tone="sky" />
       <MetricCard label="Domains" value={String(projects.filter(project=>project.domain).length)} detail="assigned addresses" icon={Globe2} tone="mist" />
     </section>
-    {error && <p className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</p>}
     <section className="rounded-3xl bg-white p-6 shadow-sm lg:p-8">
       <div>
         <p className="text-xs font-medium uppercase text-[#567C8D]">Inventory</p>

@@ -1,35 +1,275 @@
 <?php
+
 namespace App\Services\Hosting;
-use App\Models\Deployment; use App\Models\DeploymentLog; use App\Services\NginxSiteProvisioner;
-use Illuminate\Support\Facades\File; use RuntimeException; use Symfony\Component\Process\Process;
-class DeploymentRunner {
-    public function __construct(private SitePathResolver $paths,private SecretRedactor $redactor,private EnvironmentManager $env,private NginxSiteProvisioner $nginx,private SupervisorManager $supervisor,private DeploymentBroadcaster $realtime,private ToolEnvironment $tools) {}
-    public function run(Deployment $deployment): void {
-        $site=$deployment->site()->firstOrFail(); $started=microtime(true); $deployment->update(['status'=>'running','started_at'=>now()]); $this->realtime->deployment($deployment); $site->update(['status'=>'deploying']);
+
+use App\Models\Deployment;
+use App\Models\DeploymentLog;
+use App\Models\Site;
+use App\Services\NginxSiteProvisioner;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
+use RuntimeException;
+use Symfony\Component\Process\Process;
+
+class DeploymentRunner
+{
+    public function __construct(private SitePathResolver $paths, private SecretRedactor $redactor, private EnvironmentManager $env, private NginxSiteProvisioner $nginx, private SupervisorManager $supervisor, private DeploymentBroadcaster $realtime, private ToolEnvironment $tools) {}
+
+    public function run(Deployment $deployment): void
+    {
+        $site = $deployment->site()->firstOrFail();
+        $started = microtime(true);
+        $deployment->update(['status' => 'running', 'started_at' => now()]);
+        $this->realtime->deployment($deployment);
+        $site->update(['status' => 'deploying']);
+        if ($site->stack === 'Laravel / Inertia') {
+            $this->runLaravel($deployment, $site, $started);
+
+            return;
+        }
         try {
-            $root=$this->paths->root($site); if(!File::isDirectory($root.'/.git')){$this->command($deployment,'repository',['git','clone','--branch',$site->repository_branch,$site->repository_url,'.'],$root);}else{$this->command($deployment,'repository',['git','fetch','origin'],$root);} $this->command($deployment,'repository',['git','checkout',$deployment->commit_hash ?: $site->repository_branch],$root); if(!$deployment->commit_hash)$this->command($deployment,'repository',['git','pull','--ff-only','origin',$site->repository_branch],$root);
-            $dirs=$this->paths->validateApplicationDirectories($site); $this->log($deployment,'validation','Configured Laravel and Node.js directories are valid.');
-            $this->command($deployment,'composer',['composer','install','--no-dev','--optimize-autoloader','--no-interaction'],$dirs['backend']);
-            $install=$this->approvedNodeCommand($site->node_install_command,$site->package_manager,'install'); $this->command($deployment,'node-install',$install,$dirs['frontend']);
-            if($site->build_on_deploy)$this->command($deployment,'node-build',$this->approvedNodeCommand($site->node_build_command,$site->package_manager,'build'),$dirs['frontend'],allowFailure:true);
-            $additionalNodeServices=$this->installAdditionalNodeServices($deployment,$site);
-            foreach ([['php','artisan','storage:link'], ...($site->migrate_on_deploy?[['php','artisan','migrate','--force']]:[]), ['php','artisan','optimize']] as $cmd) $this->command($deployment,'laravel',$cmd,$dirs['backend']);
-            $nodePort=(int)config('berrypanel.node_port_base',12000)+$site->id;$this->log($deployment,'node-service',"Starting Node.js production server on internal port {$nodePort}.");$this->supervisor->ensureNodeServer($site,$nodePort);$this->waitForNode($nodePort);$this->log($deployment,'node-service','Node.js Supervisor service is responding.');
-            foreach($additionalNodeServices->where('enabled',true) as $service){$this->log($deployment,'node-service',"Starting {$service->name}.");$this->supervisor->apply($service);$this->supervisor->action($service->fresh(),'restart');}
-            $site->forceFill(['public_path'=>$dirs['public'],'node_port'=>$nodePort])->save();$this->log($deployment,'nginx','Configuring hybrid proxy: / to Node.js and /api to Laravel.');$this->nginx->provisionHybrid($site->slug,$site->domain ?: $site->local_url,$dirs['public'],$site->php_version,$nodePort,$site->customDomains()->where('status','active')->pluck('hostname')->all(),$site->reverb_port);$this->log($deployment,'nginx','Hybrid Nginx configuration activated.');
-            $hash=trim($this->capture(['git','rev-parse','HEAD'],$root)); $health=$this->health($site->health_check_url);
-            $deployment->update(['status'=>$health['ok']?'succeeded':'failed','commit_hash'=>$hash,'health_check_result'=>$health,'ended_at'=>now(),'duration_ms'=>(int)((microtime(true)-$started)*1000)]);
-            $site->update(['status'=>$health['ok']?'online':'failed','current_commit'=>$hash]); $this->realtime->deployment($deployment);
-            if(!$health['ok']) throw new RuntimeException('Deployment health check failed.');
+            $root = $this->paths->root($site);
+            if (! File::isDirectory($root.'/.git')) {
+                $this->command($deployment, 'repository', ['git', 'clone', '--branch', $site->repository_branch, $site->repository_url, '.'], $root);
+            } else {
+                $this->command($deployment, 'repository', ['git', 'fetch', 'origin'], $root);
+            } $this->command($deployment, 'repository', ['git', 'checkout', $deployment->commit_hash ?: $site->repository_branch], $root);
+            if (! $deployment->commit_hash) {
+                $this->command($deployment, 'repository', ['git', 'pull', '--ff-only', 'origin', $site->repository_branch], $root);
+            }
+            $dirs = $this->paths->validateApplicationDirectories($site);
+            $this->log($deployment, 'validation', 'Configured Laravel and Node.js directories are valid.');
+            $this->command($deployment, 'composer', ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction'], $dirs['backend']);
+            $install = $this->approvedNodeCommand($site->node_install_command, $site->package_manager, 'install');
+            $this->command($deployment, 'node-install', $install, $dirs['frontend']);
+            if ($site->build_on_deploy) {
+                $this->command($deployment, 'node-build', $this->approvedNodeCommand($site->node_build_command, $site->package_manager, 'build'), $dirs['frontend'], allowFailure: true);
+            }
+            $additionalNodeServices = $this->installAdditionalNodeServices($deployment, $site);
+            foreach ([['php', 'artisan', 'storage:link'], ...($site->migrate_on_deploy ? [['php', 'artisan', 'migrate', '--force']] : []), ['php', 'artisan', 'optimize']] as $cmd) {
+                $this->command($deployment, 'laravel', $cmd, $dirs['backend']);
+            }
+            $nodePort = (int) config('berrypanel.node_port_base', 12000) + $site->id;
+            $this->log($deployment, 'node-service', "Starting Node.js production server on internal port {$nodePort}.");
+            $this->supervisor->ensureNodeServer($site, $nodePort);
+            $this->waitForNode($nodePort);
+            $this->log($deployment, 'node-service', 'Node.js Supervisor service is responding.');
+            foreach ($additionalNodeServices->where('enabled', true) as $service) {
+                $this->log($deployment, 'node-service', "Starting {$service->name}.");
+                $this->supervisor->apply($service);
+                $this->supervisor->action($service->fresh(), 'restart');
+            }
+            $site->forceFill(['public_path' => $dirs['public'], 'node_port' => $nodePort])->save();
+            $this->log($deployment, 'nginx', 'Configuring hybrid proxy: / to Node.js and /api to Laravel.');
+            $this->nginx->provisionHybrid($site->slug, $site->domain ?: $site->local_url, $dirs['public'], $site->php_version, $nodePort, $site->customDomains()->where('status', 'active')->pluck('hostname')->all(), $site->reverb_port);
+            $this->log($deployment, 'nginx', 'Hybrid Nginx configuration activated.');
+            $hash = trim($this->capture(['git', 'rev-parse', 'HEAD'], $root));
+            $health = $this->health($site->health_check_url);
+            $deployment->update(['status' => $health['ok'] ? 'succeeded' : 'failed', 'commit_hash' => $hash, 'health_check_result' => $health, 'ended_at' => now(), 'duration_ms' => (int) ((microtime(true) - $started) * 1000)]);
+            $site->update(['status' => $health['ok'] ? 'online' : 'failed', 'current_commit' => $hash]);
+            $this->realtime->deployment($deployment);
+            if (! $health['ok']) {
+                throw new RuntimeException('Deployment health check failed.');
+            }
         } catch (\Throwable $e) {
-            $this->log($deployment,'failure',$e->getMessage(),'error'); $deployment->update(['status'=>'failed','failed_step'=>$deployment->failed_step ?: 'deployment','ended_at'=>now(),'duration_ms'=>(int)((microtime(true)-$started)*1000)]); $this->realtime->deployment($deployment); $site->update(['status'=>'failed']); throw $e;
+            $this->log($deployment, 'failure', $e->getMessage(), 'error');
+            $deployment->update(['status' => 'failed', 'failed_step' => $deployment->failed_step ?: 'deployment', 'ended_at' => now(), 'duration_ms' => (int) ((microtime(true) - $started) * 1000)]);
+            $this->realtime->deployment($deployment);
+            $site->update(['status' => 'failed']);
+            throw $e;
         }
     }
-    private function command(Deployment $d,string $step,array $argv,string $cwd,bool $allowFailure=false): void { $this->log($d,$step,'$ '.implode(' ',$argv)); $p=new Process($argv,$cwd,$this->tools->variables());$p->setTimeout($d->site->deployment_timeout ?: 900);$p->run(function($type,$out)use($d,$step){foreach(preg_split('/\R/',trim($out)) as $line)if($line!=='')$this->log($d,$step,$line);}); if(!$p->isSuccessful()){if($allowFailure){$message="{$step} completed with warnings (exit code {$p->getExitCode()}). Deployment will continue.";$this->log($d,$step,$message,'warning',$p->getExitCode());$site=$d->site;$warnings=$site->deployment_warnings??[];$warnings[]=$message;$site->update(['deployment_warnings'=>array_values(array_unique($warnings))]);return;}$d->update(['exit_code'=>$p->getExitCode(),'failed_step'=>$step]);throw new RuntimeException("{$step} failed with exit code {$p->getExitCode()}.");}$this->log($d,$step,'Completed.','info',$p->getExitCode());}
-    private function approvedNodeCommand(string $input,string $manager,string $purpose): array { $allowed=['npm'=>['install'=>[['npm','ci'],['npm','install']],'build'=>[['npm','run','build']]],'yarn'=>['install'=>[['yarn','install','--frozen-lockfile']],'build'=>[['yarn','build']]],'pnpm'=>['install'=>[['pnpm','install','--frozen-lockfile']],'build'=>[['pnpm','run','build']]]]; $argv=preg_split('/\s+/',trim($input)); foreach($allowed[$manager][$purpose]??[] as $candidate)if($argv===$candidate)return $argv; throw new RuntimeException('Node command is not an approved package-manager command.'); }
-    private function installAdditionalNodeServices(Deployment $deployment,\App\Models\Site $site): \Illuminate\Support\Collection { $services=$site->services()->where('type','node')->where('name','!=','Node.js Production Server')->get();foreach($services as $service){$directory=$this->paths->directory($site,$service->working_directory);if(!File::isFile($directory.'/package.json'))throw new RuntimeException("Additional Node.js service {$service->name} is invalid: missing package.json in {$service->working_directory}.");$this->command($deployment,'additional-node-install',$this->approvedNodeCommand($service->install_command?:$site->node_install_command,$site->package_manager,'install'),$directory);if($service->build_command)$this->command($deployment,'additional-node-build',$this->approvedNodeCommand($service->build_command,$site->package_manager,'build'),$directory);}$this->log($deployment,'additional-node',"Validated {$services->count()} additional Node.js service(s).");return $services; }
-    private function log(Deployment $d,string $step,string $message,string $level='info',?int $exit=null): void { $vars=array_merge($this->env->get($d->site,'laravel'),$this->env->get($d->site,'node')); $log=DeploymentLog::create(['deployment_id'=>$d->id,'step'=>$step,'level'=>$level,'message'=>$this->redactor->redact($message,$vars),'exit_code'=>$exit,'logged_at'=>now()]); $this->realtime->log($log,$d->site_id); }
-    private function capture(array $argv,string $cwd): string { $p=new Process($argv,$cwd);$p->mustRun();return $p->getOutput(); }
-    private function health(?string $url): array { if(!$url)return ['ok'=>true,'skipped'=>true]; try{$p=new Process(['curl','--fail','--silent','--max-time','15',$url]);$p->run();return ['ok'=>$p->isSuccessful(),'exit_code'=>$p->getExitCode()];}catch(\Throwable $e){return ['ok'=>false,'error'=>$e->getMessage()];} }
-    private function waitForNode(int $port):void{for($attempt=0;$attempt<20;$attempt++){$p=new Process(['curl','--silent','--output','/dev/null','--max-time','2',"http://127.0.0.1:{$port}/"]);$p->run();if($p->isSuccessful())return;usleep(500000);}throw new RuntimeException('Node.js service did not become reachable. Check the Node.js Production Server service logs.');}
+
+    private function runLaravel(Deployment $deployment, Site $site, float $started): void
+    {
+        try {
+            $root = $this->paths->root($site);
+
+            if (! File::isDirectory($root.'/.git')) {
+                $this->command($deployment, 'repository', ['git', 'clone', '--branch', $site->repository_branch, $site->repository_url, '.'], $root);
+            } else {
+                $this->command($deployment, 'repository', ['git', 'fetch', 'origin'], $root);
+            }
+
+            $this->command($deployment, 'repository', ['git', 'checkout', $deployment->commit_hash ?: $site->repository_branch], $root);
+            if (! $deployment->commit_hash) {
+                $this->command($deployment, 'repository', ['git', 'pull', '--ff-only', 'origin', $site->repository_branch], $root);
+            }
+
+            $dirs = $this->paths->validateLaravelDirectories($site);
+            $this->log($deployment, 'validation', 'Configured Laravel directory is valid.');
+            $this->command($deployment, 'composer', ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction'], $dirs['backend']);
+            $this->ensureLaravelEnvironment($deployment, $dirs['backend']);
+
+            if (File::isFile($dirs['backend'].'/package.json')) {
+                $this->command($deployment, 'node-install', $this->approvedNodeCommand($site->node_install_command, $site->package_manager, 'install'), $dirs['backend']);
+                if ($site->build_on_deploy) {
+                    $this->command($deployment, 'node-build', $this->approvedNodeCommand($site->node_build_command, $site->package_manager, 'build'), $dirs['backend'], allowFailure: true);
+                }
+            } else {
+                $this->log($deployment, 'node-install', 'No frontend package was found in this Laravel repository. Skipping asset installation and build.');
+            }
+
+            $this->command($deployment, 'laravel', ['php', 'artisan', 'storage:link'], $dirs['backend'], allowFailure: true);
+            if ($site->migrate_on_deploy) {
+                $this->command($deployment, 'laravel', ['php', 'artisan', 'migrate', '--force'], $dirs['backend']);
+            }
+            $this->command($deployment, 'laravel', ['php', 'artisan', 'optimize'], $dirs['backend'], allowFailure: true);
+            $this->command($deployment, 'permissions', ['chmod', '-R', 'ug+rwX', 'storage', 'bootstrap/cache'], $dirs['backend'], allowFailure: true);
+
+            $site->forceFill(['public_path' => $dirs['public']])->save();
+            $this->log($deployment, 'nginx', 'Configuring the Laravel web server.');
+            $this->nginx->provision(
+                $site->slug,
+                $site->domain ?: $site->local_url,
+                $dirs['public'],
+                $site->php_version,
+                $site->customDomains()->where('status', 'active')->pluck('hostname')->all(),
+                $site->reverb_port,
+            );
+            $this->log($deployment, 'nginx', 'Laravel web server configuration activated.');
+
+            $hash = trim($this->capture(['git', 'rev-parse', 'HEAD'], $root));
+            $health = $this->health($site->health_check_url);
+            $deployment->update([
+                'status' => $health['ok'] ? 'succeeded' : 'failed',
+                'commit_hash' => $hash,
+                'health_check_result' => $health,
+                'ended_at' => now(),
+                'duration_ms' => (int) ((microtime(true) - $started) * 1000),
+            ]);
+            $site->update(['status' => $health['ok'] ? 'online' : 'failed', 'current_commit' => $hash]);
+            $this->realtime->deployment($deployment);
+
+            if (! $health['ok']) {
+                throw new RuntimeException('Deployment health check failed.');
+            }
+        } catch (\Throwable $e) {
+            $this->log($deployment, 'failure', $e->getMessage(), 'error');
+            $deployment->update([
+                'status' => 'failed',
+                'failed_step' => $deployment->failed_step ?: 'deployment',
+                'ended_at' => now(),
+                'duration_ms' => (int) ((microtime(true) - $started) * 1000),
+            ]);
+            $this->realtime->deployment($deployment);
+            $site->update(['status' => 'failed']);
+
+            throw $e;
+        }
+    }
+
+    private function ensureLaravelEnvironment(Deployment $deployment, string $backend): void
+    {
+        $envPath = $backend.'/.env';
+        if (! File::isFile($envPath) && File::isFile($backend.'/.env.example')) {
+            File::copy($backend.'/.env.example', $envPath);
+            $this->log($deployment, 'laravel', 'Created the application environment file from its example.');
+        }
+
+        if (! File::isFile($envPath)) {
+            $this->log($deployment, 'laravel', 'No environment example was found. Add the application variables from the Environment page before going live.', 'warning');
+
+            return;
+        }
+
+        $contents = (string) File::get($envPath);
+        if (! preg_match('/^APP_KEY=\S+/m', $contents)) {
+            $this->command($deployment, 'laravel', ['php', 'artisan', 'key:generate', '--force'], $backend);
+        }
+    }
+
+    private function command(Deployment $d, string $step, array $argv, string $cwd, bool $allowFailure = false): void
+    {
+        $this->log($d, $step, '$ '.implode(' ', $argv));
+        $p = new Process($argv, $cwd, $this->tools->variables());
+        $p->setTimeout($d->site->deployment_timeout ?: 900);
+        $p->run(function ($type, $out) use ($d, $step) {
+            foreach (preg_split('/\R/', trim($out)) as $line) {
+                if ($line !== '') {
+                    $this->log($d, $step, $line);
+                }
+            }
+        });
+        if (! $p->isSuccessful()) {
+            if ($allowFailure) {
+                $message = "{$step} completed with warnings (exit code {$p->getExitCode()}). Deployment will continue.";
+                $this->log($d, $step, $message, 'warning', $p->getExitCode());
+                $site = $d->site;
+                $warnings = $site->deployment_warnings ?? [];
+                $warnings[] = $message;
+                $site->update(['deployment_warnings' => array_values(array_unique($warnings))]);
+
+                return;
+            }$d->update(['exit_code' => $p->getExitCode(), 'failed_step' => $step]);
+            throw new RuntimeException("{$step} failed with exit code {$p->getExitCode()}.");
+        }$this->log($d, $step, 'Completed.', 'info', $p->getExitCode());
+    }
+
+    private function approvedNodeCommand(string $input, string $manager, string $purpose): array
+    {
+        $allowed = ['npm' => ['install' => [['npm', 'ci'], ['npm', 'install']], 'build' => [['npm', 'run', 'build']]], 'yarn' => ['install' => [['yarn', 'install', '--frozen-lockfile']], 'build' => [['yarn', 'build']]], 'pnpm' => ['install' => [['pnpm', 'install', '--frozen-lockfile']], 'build' => [['pnpm', 'run', 'build']]]];
+        $argv = preg_split('/\s+/', trim($input));
+        foreach ($allowed[$manager][$purpose] ?? [] as $candidate) {
+            if ($argv === $candidate) {
+                return $argv;
+            }
+        } throw new RuntimeException('Node command is not an approved package-manager command.');
+    }
+
+    private function installAdditionalNodeServices(Deployment $deployment, Site $site): Collection
+    {
+        $services = $site->services()->where('type', 'node')->where('name', '!=', 'Node.js Production Server')->get();
+        foreach ($services as $service) {
+            $directory = $this->paths->directory($site, $service->working_directory);
+            if (! File::isFile($directory.'/package.json')) {
+                throw new RuntimeException("Additional Node.js service {$service->name} is invalid: missing package.json in {$service->working_directory}.");
+            }$this->command($deployment, 'additional-node-install', $this->approvedNodeCommand($service->install_command ?: $site->node_install_command, $site->package_manager, 'install'), $directory);
+            if ($service->build_command) {
+                $this->command($deployment, 'additional-node-build', $this->approvedNodeCommand($service->build_command, $site->package_manager, 'build'), $directory);
+            }
+        }$this->log($deployment, 'additional-node', "Validated {$services->count()} additional Node.js service(s).");
+
+        return $services;
+    }
+
+    private function log(Deployment $d, string $step, string $message, string $level = 'info', ?int $exit = null): void
+    {
+        $vars = array_merge($this->env->get($d->site, 'laravel'), $this->env->get($d->site, 'node'));
+        $log = DeploymentLog::create(['deployment_id' => $d->id, 'step' => $step, 'level' => $level, 'message' => $this->redactor->redact($message, $vars), 'exit_code' => $exit, 'logged_at' => now()]);
+        $this->realtime->log($log, $d->site_id);
+    }
+
+    private function capture(array $argv, string $cwd): string
+    {
+        $p = new Process($argv, $cwd);
+        $p->mustRun();
+
+        return $p->getOutput();
+    }
+
+    private function health(?string $url): array
+    {
+        if (! $url) {
+            return ['ok' => true, 'skipped' => true];
+        } try {
+            $p = new Process(['curl', '--fail', '--silent', '--max-time', '15', $url]);
+            $p->run();
+
+            return ['ok' => $p->isSuccessful(), 'exit_code' => $p->getExitCode()];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function waitForNode(int $port): void
+    {
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $p = new Process(['curl', '--silent', '--output', '/dev/null', '--max-time', '2', "http://127.0.0.1:{$port}/"]);
+            $p->run();
+            if ($p->isSuccessful()) {
+                return;
+            }usleep(500000);
+        }throw new RuntimeException('Node.js service did not become reachable. Check the Node.js Production Server service logs.');
+    }
 }

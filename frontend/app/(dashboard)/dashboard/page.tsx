@@ -168,7 +168,7 @@ export default function DashboardPage() {
       setRepositoryUrl("");
       setRepositoryBranch("main");
       setSiteDialogOpen(false);
-      router.push(`/dashboard/sites/${response.site.id}`);
+      router.push(`/dashboard/sites/${response.site.id}/hosting`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to create site";
       setCreateError(message);

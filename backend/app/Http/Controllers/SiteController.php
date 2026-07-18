@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\RunSiteDeployment;
 use App\Models\Site;
 use App\Services\Billing\HostingPlanAccess;
+use App\Services\Hosting\AuditLogger;
 use App\Services\NginxSiteProvisioner;
 use App\Services\SiteCreator;
 use App\Services\SiteEnvironmentService;
@@ -27,7 +29,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function store(Request $request, SiteCreator $creator, SitePresenter $presenter, HostingPlanAccess $plans): JsonResponse
+    public function store(Request $request, SiteCreator $creator, SitePresenter $presenter, HostingPlanAccess $plans, AuditLogger $audit): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:62', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9 -]*[a-zA-Z0-9]$/'],
@@ -55,12 +57,28 @@ class SiteController extends Controller
 
         try {
             $plans->assertCanCreateLaravelSite($request->user());
-            $site = $creator->create($request->user(), $validated);
+            $site = $creator->createQueued($request->user(), $validated);
+            $deployment = $site->deployments()->create([
+                'triggered_by' => $request->user()->id,
+                'status' => 'queued',
+                'branch' => $site->repository_branch,
+            ]);
+            $deployment->logs()->create([
+                'step' => 'queue',
+                'level' => 'info',
+                'message' => 'Deployment queued. Waiting for an available deployment worker.',
+                'logged_at' => now(),
+            ]);
+            RunSiteDeployment::dispatch($deployment->id);
+            $audit->record('deployment.queued', $site, $request->user(), ['deployment_id' => $deployment->id]);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        return response()->json(['site' => $presenter->toArray($site)], 201);
+        return response()->json([
+            'site' => $presenter->toArray($site),
+            'deployment' => $deployment,
+        ], 202);
     }
 
     public function show(Request $request, SitePresenter $presenter, Site $site): JsonResponse

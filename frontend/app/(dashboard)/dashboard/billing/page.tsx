@@ -14,6 +14,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type Plan = {
   slug: string;
@@ -56,7 +57,7 @@ type BillingOverview = {
   plans: Plan[];
   subscription: Subscription | null;
   payments: Payment[];
-  current_plan: Plan;
+  current_plan?: Plan;
   hosting_access: {
     paid: boolean;
     laravel_sites: { used: number; limit: number };
@@ -86,15 +87,11 @@ export default function BillingPage() {
   const [overview, setOverview] = useState<BillingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
   const load = async () => {
     try {
-      setError("");
       setOverview(await api<BillingOverview>("/api/billing"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load billing details.");
+      toast.error(caught instanceof Error ? caught.message : "Unable to load billing details.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +100,7 @@ export default function BillingPage() {
   useEffect(() => {
     const result = new URLSearchParams(window.location.search).get("payment");
     if (result === "success") {
-      setNotice("Payment submitted. Your plan updates as soon as PayMongo confirms the QR payment.");
+      toast.success("Payment submitted. Your plan will update after PayMongo confirms it.");
       void load();
 
       const interval = window.setInterval(() => void load(), 3000);
@@ -114,14 +111,13 @@ export default function BillingPage() {
         window.clearTimeout(timeout);
       };
     } else if (result === "cancelled") {
-      setNotice("Payment was cancelled. Your current plan was not changed.");
+      toast.info("Payment was cancelled. Your current plan was not changed.");
     }
     void load();
   }, []);
 
   const checkout = async (plan: Plan) => {
     setPaying(plan.slug);
-    setError("");
     try {
       const response = await api<{ payment: { checkout_url: string } }>("/api/billing/checkout", {
         method: "POST",
@@ -129,12 +125,14 @@ export default function BillingPage() {
       });
       window.location.assign(response.payment.checkout_url);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to start the QR payment.");
+      toast.error(caught instanceof Error ? caught.message : "Unable to start the QR payment.");
       setPaying(null);
     }
   };
 
   const subscription = overview?.subscription;
+  const currentPlan = overview?.current_plan
+    ?? (subscription?.status === "active" ? subscription.plan : overview?.plans.find((plan) => plan.slug === "free"));
 
   return (
     <DashboardPage>
@@ -144,11 +142,8 @@ export default function BillingPage() {
         description="Choose your hosting plan and renew it securely with QR Ph. Your payment history and next due date stay together here."
         icon={CreditCard}
         contextLabel="Current plan"
-        contextValue={loading ? "Loading…" : overview?.current_plan.name ?? "Free"}
+        contextValue={loading ? "Loading…" : currentPlan?.name ?? "Free"}
       />
-
-      {error && <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-      {notice && <p className="rounded-2xl bg-sky-50 p-4 text-sm text-sky-800">{notice}</p>}
 
       {!loading && subscription?.renewal_due && (
         <section className="flex flex-col gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -196,10 +191,10 @@ export default function BillingPage() {
         {loading ? (
           <div className="mt-5 grid min-h-52 place-items-center rounded-3xl bg-white"><Loader2 className="animate-spin" /></div>
         ) : (
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
             {overview?.plans.map((plan) => {
               const paidActive = subscription?.status === "active";
-              const current = overview.current_plan.slug === plan.slug;
+              const current = currentPlan?.slug === plan.slug;
               const isFree = plan.price_centavos === 0;
               const downgradeLocked = Boolean(
                 paidActive && subscription && plan.sort_order < subscription.plan.sort_order,

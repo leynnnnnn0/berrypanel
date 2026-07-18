@@ -37,7 +37,9 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 type Site = {
   id: number;
@@ -90,6 +92,7 @@ function siteAddress(url: string) {
 }
 
 export default function SitesPage() {
+  const router = useRouter();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -206,6 +209,8 @@ export default function SitesPage() {
       setRepositoryUrl("");
       setRepositoryBranch("main");
       setCreateOpen(false);
+      toast.success("Your Laravel deployment was added to the queue.");
+      router.push(`/dashboard/sites/${response.site.id}/hosting`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create site");
     } finally {

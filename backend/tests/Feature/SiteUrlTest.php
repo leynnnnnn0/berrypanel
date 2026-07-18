@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\RunSiteDeployment;
 use App\Models\BillingPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -20,6 +22,7 @@ function activateStarterForSiteUrlTest(User $user): void
 }
 
 test('new site local url uses the configured server ip through nip io', function () {
+    Queue::fake();
     $usersRoot = storage_path('framework/testing/berrypanel-url-users');
     File::deleteDirectory($usersRoot);
     File::ensureDirectoryExists($usersRoot, 0775, true);
@@ -40,12 +43,14 @@ test('new site local url uses the configured server ip through nip io', function
     ]);
 
     $response
-        ->assertCreated()
+        ->assertAccepted()
         ->assertJsonPath('site.slug', 'test-website')
         ->assertJsonPath('site.local_url', 'test-website.192.168.254.113.nip.io');
+    Queue::assertPushed(RunSiteDeployment::class);
 });
 
 test('new site local url can use a custom wildcard domain suffix', function () {
+    Queue::fake();
     $usersRoot = storage_path('framework/testing/berrypanel-custom-domain-users');
     File::deleteDirectory($usersRoot);
     File::ensureDirectoryExists($usersRoot, 0775, true);
@@ -66,6 +71,7 @@ test('new site local url can use a custom wildcard domain suffix', function () {
     ]);
 
     $response
-        ->assertCreated()
+        ->assertAccepted()
         ->assertJsonPath('site.local_url', 'client-portal.apps.berrypanel.test');
+    Queue::assertPushed(RunSiteDeployment::class);
 });

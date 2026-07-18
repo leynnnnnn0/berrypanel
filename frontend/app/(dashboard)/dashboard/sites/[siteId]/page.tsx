@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import {
+  Activity,
   ArrowLeft,
   CheckCircle2,
   Database,
@@ -476,6 +477,9 @@ export default function SiteShowPage() {
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" className="h-11 rounded-full border-white/20 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white">
               <Link href="/dashboard/sites"><ArrowLeft className="size-4" />Sites</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 rounded-full border-white/20 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white">
+              <Link href={`/dashboard/sites/${site.id}/hosting`}><Activity className="size-4" />Deployments &amp; logs</Link>
             </Button>
             <Button type="button" className="h-11 rounded-full bg-white px-5 text-[#2F4156] hover:bg-white/90" onClick={() => setNextStepsOpen(true)}>
               <ListChecks className="size-4" />What&apos;s next
