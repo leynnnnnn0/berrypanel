@@ -28,17 +28,7 @@ import { useState } from "react";
 type Feature = {
   title: string;
   body: string;
-  image: string;
-  imageAlt: string;
-  tone: "cream" | "image" | "lavender" | "dark";
-};
-
-type Testimonial = {
-  name: string;
-  role: string;
-  quote: string;
-  image: string;
-  imageAlt: string;
+  visual: "deploy" | "workspace" | "services";
 };
 
 type ProcessStep = {
@@ -67,63 +57,19 @@ const navItems = [
 
 const features: Feature[] = [
   {
-    title: "Launch With Confidence",
-    body: "Bring your Laravel website online through a clear, guided experience from start to finish.",
-    image: "/images/features/launch-with-confidence.png",
-    imageAlt: "A student successfully publishing a web project",
-    tone: "cream",
+    title: "Deploy From GitHub",
+    body: "Connect your repository and follow a clear path from source code to a live website.",
+    visual: "deploy",
   },
   {
-    title: "Everything In One Place",
-    body: "See your websites, domains, updates, activity, and current status from one simple dashboard.",
-    image: "/images/features/everything-in-one-place.png",
-    imageAlt: "A student managing project services from one dashboard",
-    tone: "image",
+    title: "Manage It In One Place",
+    body: "Keep your sites, domains, databases, environments, and deployments together.",
+    visual: "workspace",
   },
   {
-    title: "Keep Every Site Healthy",
-    body: "Handle everyday website updates and important maintenance with a workflow your team can follow.",
-    image: "/images/features/keep-every-site-healthy.png",
-    imageAlt: "Students reviewing the healthy status of their website",
-    tone: "lavender",
-  },
-  {
-    title: "Support Your Growth",
-    body: "Stay on top of background work, recent activity, and issues as your websites and customers grow.",
-    image: "/images/features/support-your-growth.png",
-    imageAlt: "A student team celebrating the growth of their application",
-    tone: "dark",
-  },
-];
-
-const testimonials: Testimonial[] = [
-  {
-    name: "Capstone teams",
-    role: "Deploy the project you spent a semester building",
-    quote: "Connect a public GitHub repository and follow the deployment from your own dashboard.",
-    image: "/images/student-projects/capstone-teams.png",
-    imageAlt: "A capstone web application being published from a laptop",
-  },
-  {
-    name: "Portfolio builders",
-    role: "Share real work with professors and employers",
-    quote: "Publish Laravel, Blade, Livewire, Inertia, or Filament projects on an address you can share.",
-    image: "/images/student-projects/portfolio-builders.png",
-    imageAlt: "A web portfolio displayed across a laptop and phone",
-  },
-  {
-    name: "Student developers",
-    role: "Learn production without managing a whole server",
-    quote: "Use guided tools for environment settings, databases, domains, deployments, and application services.",
-    image: "/images/student-projects/student-developers.png",
-    imageAlt: "A managed project dashboard connected to hosting tools",
-  },
-  {
-    name: "Growing projects",
-    role: "Add more capability only when you need it",
-    quote: "Begin free, then add queues, schedules, Reverb, or Node.js hosting as your application grows.",
-    image: "/images/student-projects/growing-projects.png",
-    imageAlt: "A web application growing across devices with scheduled activity",
+    title: "Add Power As You Grow",
+    body: "Turn on queues, schedules, Reverb, and Node.js when your application needs more.",
+    visual: "services",
   },
 ];
 
@@ -523,69 +469,42 @@ function FeatureSection() {
   return (
     <motion.section
       id="features"
-      className="overflow-hidden bg-white px-8 py-14 md:px-14"
+      className="overflow-hidden bg-white px-6 py-24 md:px-14 md:py-28"
       {...sectionReveal}
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-center text-[54px] font-normal w-full leading-none tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
-          Everything You Need, Right Where You Need It
+      <div className="mx-auto max-w-[760px] text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#567C8D]">
+          Core Features
+        </p>
+        <h2 className="mt-5 text-[48px] font-normal leading-[0.98] tracking-[-0.06em] text-[#2F4156] md:text-[68px]">
+          Everything Your Project Needs
         </h2>
+        <p className="mx-auto mt-6 max-w-[570px] text-lg leading-relaxed text-[#6C7D91] md:text-xl">
+          From a GitHub repository to a live, managed Laravel application.
+        </p>
       </div>
-      <div className="mt-20 grid gap-6 md:min-w-[1280px] md:grid-cols-[380px_380px_380px_380px]">
+      <div className="mx-auto mt-16 grid max-w-[1240px] gap-7 lg:grid-cols-3">
         {features.map((feature) => (
           <FeatureCard key={feature.title} feature={feature} />
         ))}
-      </div>
-      <div className="mt-16 flex justify-center gap-5">
-        <PillButton href="/register" dark className="h-14 min-w-40">
-          Get Started
-        </PillButton>
-        <PillButton href="/login" className="h-14 min-w-40">
-          Login
-        </PillButton>
       </div>
     </motion.section>
   );
 }
 
 function FeatureCard({ feature }: { feature: Feature }) {
-  const styles = {
-    cream: "bg-[#F1F1F1]",
-    image: "bg-white border border-[#C8D9E6]",
-    lavender: "bg-[#C8D9E6]",
-    dark: "bg-[#2F4156] text-white",
-  };
-
   return (
     <motion.article
-      className={`group relative flex h-[560px] flex-col overflow-hidden rounded-[26px] ${styles[feature.tone]}`}
+      className="group relative flex min-h-[500px] flex-col overflow-hidden rounded-[28px] border border-[#DCE5EB] bg-[#F7FAFB] shadow-[0_24px_60px_rgba(47,65,86,0.08)]"
       whileHover={{ y: -8, scale: 1.015 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="relative h-[285px] shrink-0 overflow-hidden">
-        <Image
-          src={feature.image}
-          alt={feature.imageAlt}
-          fill
-          sizes="380px"
-          className="object-cover transition duration-500 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-      </div>
-      <div className="relative z-10 flex flex-1 flex-col justify-between p-8">
-        <div className="flex items-start justify-between gap-6">
-          <h3 className="text-[34px] leading-[0.95] tracking-[-0.055em]">
-            {feature.title}
-          </h3>
-          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-white text-[#2F4156]">
-            {feature.tone === "cream" ? (
-              <Clock3 className="size-7" />
-            ) : (
-              <Zap className="size-7" />
-            )}
-          </span>
-        </div>
-        <p className={`max-w-[300px] text-[18px] leading-[1.15] tracking-[-0.035em] ${feature.tone === "dark" ? "text-white/80" : "text-[#567C8D]"}`}>
+      <FeatureVisual kind={feature.visual} />
+      <div className="relative z-10 flex flex-1 flex-col justify-end bg-white px-8 py-8">
+        <h3 className="text-[31px] leading-none tracking-[-0.05em] text-[#2F4156]">
+          {feature.title}
+        </h3>
+        <p className="mt-4 max-w-[330px] text-[17px] leading-relaxed tracking-[-0.025em] text-[#6C7D91]">
           {feature.body}
         </p>
       </div>
@@ -593,58 +512,178 @@ function FeatureCard({ feature }: { feature: Feature }) {
   );
 }
 
+function FeatureVisual({ kind }: { kind: Feature["visual"] }) {
+  if (kind === "deploy") {
+    return (
+      <div className="relative flex h-[320px] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_15%_15%,#FFFFFF_0,transparent_35%),linear-gradient(145deg,#E8F0F5_0%,#C8D9E6_52%,#9FB9C7_100%)] p-7">
+        <div className="absolute -left-16 top-20 size-48 rounded-full border border-white/45" />
+        <div className="relative w-full max-w-[310px] rounded-[22px] border border-white/70 bg-white/80 p-5 shadow-[0_22px_60px_rgba(47,65,86,0.15)] backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-[#DCE5EB] pb-4">
+            <span className="flex items-center gap-2 text-sm font-semibold text-[#2F4156]">
+              <Code2 className="size-4 text-[#567C8D]" />
+              student-project
+            </span>
+            <span className="rounded-full bg-[#E7F5ED] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#2F7D54]">
+              main
+            </span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {["Repository connected", "Application prepared", "Website published"].map((label, index) => (
+              <div key={label} className="flex items-center gap-3 text-xs text-[#567C8D]">
+                <span className={`grid size-6 place-items-center rounded-full ${index === 2 ? "bg-[#2F4156] text-white" : "bg-[#DCEFE5] text-[#2F7D54]"}`}>
+                  {index === 2 ? <Rocket className="size-3.5" /> : <span className="size-2 rounded-full bg-current" />}
+                </span>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === "workspace") {
+    return (
+      <div className="relative flex h-[320px] items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#DDE9F0_0%,#B8CFDC_50%,#7FA0B0_100%)] p-7">
+        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:34px_34px]" />
+        <div className="relative grid size-24 place-items-center rounded-full border-8 border-white/60 bg-[#2F4156] text-white shadow-xl">
+          <span className="text-xl font-semibold tracking-[-0.05em]">BP</span>
+        </div>
+        <div className="absolute left-6 top-7 flex items-center gap-3 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-medium text-[#2F4156] shadow-lg backdrop-blur-md">
+          <Globe2 className="size-5 text-[#567C8D]" /> Sites
+          <span className="size-2 rounded-full bg-emerald-500" />
+        </div>
+        <div className="absolute right-5 top-20 flex items-center gap-3 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-medium text-[#2F4156] shadow-lg backdrop-blur-md">
+          <Database className="size-5 text-[#567C8D]" /> Databases
+          <span className="size-2 rounded-full bg-emerald-500" />
+        </div>
+        <div className="absolute bottom-7 left-10 flex items-center gap-3 rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-sm font-medium text-[#2F4156] shadow-lg backdrop-blur-md">
+          <Globe2 className="size-5 text-[#567C8D]" /> Domains
+          <span className="size-2 rounded-full bg-emerald-500" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex h-[320px] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_70%_15%,#F7FBFD_0,transparent_28%),linear-gradient(145deg,#C8D9E6_0%,#AFC6D2_52%,#718FA0_100%)] p-7">
+      <div className="absolute -right-14 -top-14 size-48 rounded-full border-[28px] border-white/25" />
+      <div className="relative w-full max-w-[310px] space-y-3 rounded-[24px] border border-white/70 bg-white/70 p-5 shadow-[0_22px_60px_rgba(47,65,86,0.14)] backdrop-blur-md">
+        {[
+          { label: "Background jobs", icon: ServerCog },
+          { label: "Scheduled tasks", icon: Clock3 },
+          { label: "Realtime updates", icon: Zap },
+        ].map(({ label, icon: Icon }, index) => (
+          <div key={label} className="flex items-center gap-3 rounded-2xl bg-white/75 p-3">
+            <span className="grid size-9 place-items-center rounded-xl bg-[#E5EEF4] text-[#2F4156]">
+              <Icon className="size-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-[#2F4156]">{label}</span>
+            <span className={`relative h-5 w-9 rounded-full ${index === 1 ? "bg-[#9FB9C7]" : "bg-[#567C8D]"}`}>
+              <span className="absolute right-1 top-1 size-3 rounded-full bg-white shadow" />
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TestimonialsSection() {
   return (
     <motion.section
       id="students"
-      className="bg-white px-8 py-20 md:px-14"
+      className="bg-white px-5 py-20 md:px-10 md:py-24"
       {...sectionReveal}
     >
-      <div className="text-center">
-        <div className="inline-flex items-center gap-4">
-          <span className="rounded-full bg-[#F1F1F1] px-6 py-3 text-[18px]">
-            Made For Students
+      <div className="relative mx-auto min-h-[760px] max-w-[1380px] overflow-hidden rounded-[40px] border border-[#DCE5EB] bg-[#F8FAFB] px-6 py-20 shadow-[0_28px_80px_rgba(47,65,86,0.08)] md:px-12">
+        <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(#C8D9E6_1.2px,transparent_1.2px)] [background-size:22px_22px]" />
+        <div className="absolute -left-28 top-1/2 size-72 -translate-y-1/2 rounded-full border-[34px] border-[#C8D9E6]/25" />
+        <div className="absolute -right-20 top-10 size-64 rounded-full border-[32px] border-[#567C8D]/10" />
+
+        <div className="relative z-20 mx-auto flex max-w-[760px] flex-col items-center text-center md:pt-28">
+          <span className="grid size-16 place-items-center rounded-2xl bg-[#2F4156] text-white shadow-[0_16px_32px_rgba(47,65,86,0.22)]">
+            <Users className="size-8" />
           </span>
-          <Users className="size-9 text-[#567C8D]" />
+          <p className="mt-7 text-xs font-semibold uppercase tracking-[0.24em] text-[#567C8D]">
+            Made For Students
+          </p>
+          <h2 className="mt-5 text-[48px] font-normal leading-[0.98] tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
+            Build, Publish, And Share
+            <span className="block text-[#718FA0]">Every Student Project</span>
+          </h2>
+          <p className="mx-auto mt-7 max-w-[600px] text-lg leading-relaxed text-[#6C7D91] md:text-xl">
+            Take your capstone, portfolio, or classroom application from GitHub to a live address without managing an entire server.
+          </p>
+          <PillButton href="/register" dark className="mt-8 h-14 min-w-44">
+            Start For Free
+          </PillButton>
         </div>
-        <h2 className="mt-10 text-[58px] font-normal leading-[1.02] tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-          Built Around The Projects
-          <br />
-          Students Actually Create
-        </h2>
-      </div>
-      <div className="mt-20 grid gap-7 md:grid-cols-4">
-        {testimonials.map((item) => (
-          <motion.article
-            key={item.name}
-            className="group flex min-h-[520px] flex-col overflow-hidden rounded-[24px] bg-[#F1F1F1]"
-            whileHover={{ y: -8 }}
-            transition={{ duration: 0.25 }}
-          >
-            <div className="relative h-[250px] shrink-0 overflow-hidden">
-              <Image
-                src={item.image}
-                alt={item.imageAlt}
-                fill
-                sizes="(min-width: 768px) 25vw, 100vw"
-                className="object-cover transition duration-500 group-hover:scale-105"
-              />
-            </div>
-            <div className="flex flex-1 flex-col justify-between p-7">
-              <div>
-                <h3 className="text-[30px] tracking-[-0.05em]">
-                  {item.name}
-                </h3>
-                <p className="mt-2 text-[18px] leading-tight text-[#567C8D]">
-                  {item.role}
-                </p>
+
+        <motion.div
+          className="relative z-10 mt-14 rounded-[26px] border border-[#C8D9E6] bg-white/90 p-5 shadow-xl backdrop-blur-md md:absolute md:left-7 md:top-7 md:mt-0 md:w-[270px] md:-rotate-3"
+          whileHover={{ rotate: 0, y: -6 }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="grid size-11 place-items-center rounded-xl bg-[#E5EEF4] text-[#2F4156]">
+              <CloudUpload className="size-5" />
+            </span>
+            <span className="rounded-full bg-[#E8F4ED] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#2F7D54]">Live</span>
+          </div>
+          <p className="mt-5 text-sm font-semibold text-[#2F4156]">Capstone deployment</p>
+          <p className="mt-1 text-xs leading-relaxed text-[#6C7D91]">Repository connected and published successfully.</p>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E5EEF4]"><div className="h-full w-full rounded-full bg-[#567C8D]" /></div>
+        </motion.div>
+
+        <motion.div
+          className="relative z-10 mt-5 rounded-[26px] border border-[#C8D9E6] bg-[#E5EEF4]/95 p-5 shadow-xl backdrop-blur-md md:absolute md:right-7 md:top-8 md:mt-0 md:w-[270px] md:rotate-3"
+          whileHover={{ rotate: 0, y: -6 }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-[#2F4156]">Project-ready stacks</p>
+            <Code2 className="size-5 text-[#567C8D]" />
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-medium text-[#2F4156]">
+            {["Blade", "Inertia", "Livewire", "Filament"].map((stack) => (
+              <span key={stack} className="rounded-xl bg-white/80 px-3 py-2.5 text-center">{stack}</span>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="relative z-10 mt-5 rounded-[26px] border border-[#C8D9E6] bg-white/90 p-5 shadow-xl backdrop-blur-md md:absolute md:bottom-7 md:left-9 md:mt-0 md:w-[300px] md:rotate-2"
+          whileHover={{ rotate: 0, y: -6 }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-[#2F4156]">Your projects</p>
+            <span className="text-xs text-[#567C8D]">2 online</span>
+          </div>
+          <div className="mt-4 space-y-2.5">
+            {["Portfolio website", "Final capstone"].map((project, index) => (
+              <div key={project} className="flex items-center gap-3 rounded-xl bg-[#F4F7F9] p-3">
+                <span className="grid size-8 place-items-center rounded-lg bg-[#C8D9E6] text-xs font-semibold text-[#2F4156]">{index + 1}</span>
+                <span className="flex-1 text-xs font-medium text-[#2F4156]">{project}</span>
+                <span className="size-2 rounded-full bg-emerald-500" />
               </div>
-              <p className="mt-8 text-[18px] leading-[1.1] tracking-[-0.035em] text-[#2F4156]">
-                {item.quote}
-              </p>
-            </div>
-          </motion.article>
-        ))}
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="relative z-10 mt-5 rounded-[26px] border border-[#6F8FA0] bg-[#2F4156] p-5 text-white shadow-xl md:absolute md:bottom-7 md:right-8 md:mt-0 md:w-[300px] md:-rotate-2"
+          whileHover={{ rotate: 0, y: -6 }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">Grow when ready</p>
+            <Rocket className="size-5 text-[#C8D9E6]" />
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-white/65">Add more application services only when your project needs them.</p>
+          <div className="mt-4 flex gap-2">
+            {["Jobs", "Reverb", "Node.js"].map((service) => (
+              <span key={service} className="rounded-full bg-white/10 px-3 py-2 text-[10px] font-medium text-white/85">{service}</span>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </motion.section>
   );
@@ -654,36 +693,84 @@ function ProcessSection() {
   return (
     <motion.section
       id="process"
-      className="bg-white px-8 py-16 md:px-14"
+      className="bg-[#F6F7F8] px-6 py-20 md:px-14 md:py-24"
       {...sectionReveal}
     >
-      <h2 className="text-center text-[58px] font-normal leading-none tracking-[-0.06em] text-[#2F4156] md:text-[76px]">
-        Getting Your Website Live Is Simple
-      </h2>
-      <div className="mx-auto mt-16 grid max-w-[1400px] gap-7 md:grid-cols-4">
-        {processSteps.map((item) => (
+      <div className="mx-auto max-w-[1400px]">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <span className="text-[14px] font-medium uppercase tracking-[0.22em] text-[#567C8D]">
+              A clear path to launch
+            </span>
+            <h2 className="mt-4 max-w-[850px] text-[50px] font-normal leading-[0.95] tracking-[-0.06em] text-[#2F4156] md:text-[72px]">
+              Getting Your Website Live Is Simple
+            </h2>
+          </div>
+          <span className="w-fit rounded-full border border-[#DCE4E8] bg-white px-5 py-3 text-[15px] text-[#567C8D] shadow-sm">
+            Four guided steps
+          </span>
+        </div>
+
+        <div className="mt-14 grid gap-4 lg:grid-cols-[0.86fr_1fr_1fr] lg:grid-rows-[240px_300px]">
+          {processSteps.map((item, index) => (
           <motion.article
             key={item.step}
-            className="flex min-h-[430px] -rotate-[-1deg] flex-col items-center justify-between rounded-[24px] bg-[#F1F1F1] p-9 text-center even:rotate-[1deg]"
-            whileHover={{ rotate: 0, y: -10 }}
+            className={`group relative flex min-h-[280px] overflow-hidden rounded-[28px] border border-[#E1E7EA] bg-white p-7 shadow-[0_18px_50px_rgba(47,65,86,0.06)] md:p-9 ${
+              index === 0
+                ? "lg:row-span-2 lg:min-h-0 lg:items-end"
+                : index === 1
+                  ? "lg:col-span-2 lg:min-h-0 lg:items-start"
+                  : "lg:min-h-0 lg:items-end"
+            }`}
+            whileHover={{ y: -6 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="grid h-28 w-full place-items-center rounded-[18px] bg-white text-[#567C8D]">
-              <item.icon className="size-16" strokeWidth={1.8} />
+            <div
+              className={`pointer-events-none absolute text-[#C8D9E6] transition duration-500 group-hover:scale-105 group-hover:text-[#B7CDDC] ${
+                index === 0
+                  ? "left-8 top-9"
+                  : index === 1
+                    ? "bottom-5 right-10"
+                    : "right-7 top-7"
+              }`}
+            >
+              <item.icon
+                className={index === 1 ? "size-32 md:size-40" : "size-24 md:size-28"}
+                strokeWidth={1.15}
+              />
             </div>
-            <div>
-              <h3 className="text-[24px] leading-none tracking-[-0.04em]">
+
+            <div
+              className={`relative z-10 flex w-full flex-col ${
+                index === 1
+                  ? "max-w-[720px]"
+                  : index === 0
+                    ? "mt-36"
+                    : "mt-24"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[12px] font-medium uppercase tracking-[0.2em] text-[#7C98A5]">
+                  {item.step}
+                </span>
+                <span className="grid size-9 place-items-center rounded-full bg-[#EDF3F6] text-[13px] font-medium text-[#567C8D]">
+                  0{index + 1}
+                </span>
+              </div>
+              <h3 className="mt-5 text-[29px] leading-[0.98] tracking-[-0.05em] text-[#2F4156] md:text-[34px]">
                 {item.title}
               </h3>
-              <p className="mx-auto mt-7 max-w-[260px] text-[23px] leading-[0.95] tracking-[-0.055em] text-[#567C8D]">
+              <p
+                className={`mt-4 text-[17px] leading-[1.25] tracking-[-0.025em] text-[#567C8D] ${
+                  index === 1 ? "max-w-[580px]" : "max-w-[360px]"
+                }`}
+              >
                 {item.body}
               </p>
             </div>
-            <span className="rounded-full bg-[#C8D9E6] px-8 py-3 text-[18px] shadow-[14px_0_0_#F1F1F1]">
-              {item.step}
-            </span>
           </motion.article>
-        ))}
+          ))}
+        </div>
       </div>
     </motion.section>
   );

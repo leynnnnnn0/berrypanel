@@ -72,6 +72,15 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/(dashboard)/dashboard/billing/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/billing">> = Specific
+  const handler = {} as typeof import("../../app/(dashboard)/dashboard/billing/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/(dashboard)/dashboard/databases/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/databases">> = Specific
@@ -81,10 +90,37 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../app/(dashboard)/dashboard/domains/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/domains">> = Specific
+  const handler = {} as typeof import("../../app/(dashboard)/dashboard/domains/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/(dashboard)/dashboard/hosting-guide/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/dashboard/hosting-guide">> = Specific
   const handler = {} as typeof import("../../app/(dashboard)/dashboard/hosting-guide/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/(dashboard)/dashboard/node-laravel-hosting/[siteId]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/node-laravel-hosting/[siteId]">> = Specific
+  const handler = {} as typeof import("../../app/(dashboard)/dashboard/node-laravel-hosting/[siteId]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/(dashboard)/dashboard/node-laravel-hosting/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dashboard/node-laravel-hosting">> = Specific
+  const handler = {} as typeof import("../../app/(dashboard)/dashboard/node-laravel-hosting/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
